@@ -17,10 +17,13 @@ type ValidationResult = { MemberName : string ; Errors : string list }
 
 
 /// <summary>Extension of INotifyPropertyChanged with a public method to fire the PropertyChanged event</summary>
-/// <remarks>This type should provide a constructor which accepts an Execute (obj -> unit) and CanExecute (obj -> bool) function</remarks>
-type IViewModel =
+/// <remarks>This type should provide a constructor which accepts no arguments, and one which accepts a Model</remarks>
+type IViewModel<'a> =
     inherit INotifyPropertyChanged
     inherit INotifyDataErrorInfo
+
+    /// The current state (model)
+    abstract State : 'a
 
     /// Trigger the PropertyChanged event for this specific ViewModel
     abstract RaisePropertyChanged : string -> unit

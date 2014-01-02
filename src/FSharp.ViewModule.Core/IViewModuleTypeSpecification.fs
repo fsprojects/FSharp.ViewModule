@@ -14,7 +14,7 @@ type Platform = { Framework : string }
 /// Framework with the type provider
 type IViewModuleTypeSpecification =
 
-    /// The type used for the View Model.  Should implement IViewModel
+    /// The type used for the View Model.  Should be an open generic (typedefof<T>) implementing IViewModel<'a>
     abstract ViewModelType : System.Type
     
     /// The type used for implementing ICommand.  Should implement INotifyCommand
