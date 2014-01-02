@@ -7,6 +7,7 @@ open System.ComponentModel
 
 /// This is the specification required to determine which platform target the type provider builds
 /// For example, this would specify a standard .NET assembly vs. PCL Profile7, etc
+// TODO: Note that this likely would make more sense as a discriminated union + string - mostly just here as a placeholder atm
 type Platform = { Framework : string }
 
 /// The Specification used by the type provider to generate a view model
