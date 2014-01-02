@@ -13,7 +13,7 @@ type INotifyCommand =
 
 
 /// Results of a validation for the member of a type
-type ValidationResult = { MemberName : string ; Errors : string seq }
+type ValidationResult = { MemberName : string ; Errors : string list }
 
 
 /// <summary>Extension of INotifyPropertyChanged with a public method to fire the PropertyChanged event</summary>
