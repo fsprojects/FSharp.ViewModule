@@ -62,7 +62,9 @@ module internal AssemblyHelpers =
             let assembly = Assembly.LoadFrom(path)
             predicate(assembly)
 
-    let private matchingType (t : Type) = t.GetInterfaces() |> Array.exists (fun t -> t = typeof<IViewModuleTypeSpecification>)
+    let private matchingType (t : Type) = 
+        let ifs = t.GetInterfaces() 
+        ifs |> Array.exists (fun t -> t = typeof<IViewModuleTypeSpecification>)
 
     let private predicate (assembly : Assembly) =
         try
@@ -88,10 +90,11 @@ module internal AssemblyHelpers =
         | 0 -> None
         | _ -> Some matches.[0]
 
-    let loadViewModuleTypeSpecification (assembly : Assembly) =
-        let t = 
-            assembly.GetTypes()
-            |> Array.filter matchingType
-
-        let vmType = t.[0]
+    let loadViewModuleTypeSpecification (assembly : Assembly) typeName =
+//        let vmType =
+//            referencedAssemblies
+//            |> Seq.map Assembly.LoadFrom
+//            |> Seq.map (fun a -> a.GetType(typeName))
+//            |> Seq.find (fun t -> t <> null)
+        let vmType = assembly.GetType(typeName)
         Activator.CreateInstance(vmType) :?> IViewModuleTypeSpecification

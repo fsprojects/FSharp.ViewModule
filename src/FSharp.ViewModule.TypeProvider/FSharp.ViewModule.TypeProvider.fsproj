@@ -69,7 +69,6 @@
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Numerics" />
-    <Reference Include="System.Windows" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\FSharp.ViewModule.Core\FSharp.ViewModule.Core.fsproj">
@@ -77,14 +76,9 @@
       <Project>{bee71954-6ea6-4fee-9362-a9233bb9ee0f}</Project>
       <Private>True</Private>
     </ProjectReference>
-    <ProjectReference Include="..\FSharp.ViewModule.MvvmCross\FSharp.ViewModule.MvvmCross.fsproj">
-      <Name>FSharp.ViewModule.MvvmCross</Name>
-      <Project>{61cff60e-a53a-478b-a4c4-d6a4de70ab10}</Project>
-      <Private>True</Private>
-    </ProjectReference>
   </ItemGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
-       Other similar extension points exist, see Microsoft.Common.targets.
+	   Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">
   </Target>
   <Target Name="AfterBuild">

@@ -46,7 +46,7 @@ type FvxViewModel() =
         member this.SetErrors (validationResults : ValidationResult seq) =
             ()
 
-type MvvmCrossViewModuleTypeSpecification() =    
+type ViewModuleTypeSpecification() =    
     interface IViewModuleTypeSpecification with
         member this.ViewModelType = typeof<FvxViewModel>
         member this.CommandType = typeof<FvxCommand>

@@ -313,18 +313,26 @@ type ViewModelTypeProvider (cfg: TypeProviderConfig) as this =
     let pn = "ViewModelProvider"
 
     let tempAsm = ProvidedAssembly(Path.ChangeExtension(Path.GetTempFileName(), ".dll"))
-    let parameters = [ProvidedStaticParameter ("modelsAssembly", typeof<string>) ; ProvidedStaticParameter("modelsSpecificationAssembly", typeof<string>) ]
+    let parameters = [ProvidedStaticParameter ("modelsAssembly", typeof<string>) ; ProvidedStaticParameter("modelsSpecificationAssembly", typeof<string>) ; ProvidedStaticParameter("modelsSpecification", typeof<string>) ]
     
     do
         // THIS IS NECESSARY
         AppDomain.CurrentDomain.add_AssemblyResolve (fun _ args ->
+            let localAssemblies = System.AppDomain.CurrentDomain.GetAssemblies()
+            let referencedAssemblies = cfg.ReferencedAssemblies
             let name = System.Reflection.AssemblyName(args.Name)
             let existingAssembly = 
-                System.AppDomain.CurrentDomain.GetAssemblies()
+                localAssemblies 
                 |> Seq.tryFind(fun a -> System.Reflection.AssemblyName.ReferenceMatchesDefinition(name, a.GetName()))
             match existingAssembly with
             | Some a -> a
-            | None -> null)
+            | None -> 
+                let ref = 
+                    referencedAssemblies
+                    |> Seq.tryFind (fun a -> AssemblyName.ReferenceMatchesDefinition(AssemblyName.GetAssemblyName(a), name))
+                match ref with
+                | Some a -> Assembly.LoadFrom a
+                | None -> null)
     
         try
             let def = ProvidedTypeDefinition (asm, ns, pn, Some typeof<obj>, IsErased = false) 
@@ -336,7 +344,7 @@ type ViewModelTypeProvider (cfg: TypeProviderConfig) as this =
             printfn "%s" exn.Message
 
     /// FindModelsAssembly
-    member internal this.FindModelsAssembly fileName =
+    member internal this.LoadAssemblyByFilename fileName =
         match cfg |> TypeProviderConfig.tryFindAssembly (fun fullPath -> Path.GetFileNameWithoutExtension fullPath = fileName) with
         | None -> failwithf "Invalid models assembly name %s. Pick from the list of referenced assemblies." fileName
         | Some masmFileName -> TypeProvider.loadAssemblyFile masmFileName
@@ -345,13 +353,17 @@ type ViewModelTypeProvider (cfg: TypeProviderConfig) as this =
     member internal this.GenerateTypes (typeName: string) (args: obj[]) =
         let modelsAssembly = args.[0] :?> string
         let modelsSpecificationAssembly = args.[1] :?> string
+        let modelsSpecification = args.[2] :?> string
 
-        let masm = this.FindModelsAssembly modelsAssembly
+        let masm = this.LoadAssemblyByFilename modelsAssembly
+        let vmcAssembly = this.LoadAssemblyByFilename modelsSpecificationAssembly
+
+        let vmcTemplate =  AssemblyHelpers.loadViewModuleTypeSpecification vmcAssembly modelsSpecification
 
         // TODO: We should find the specification dynamically from the second assembly specification
         // let vmspecificationAsm = this.FindModelsAssembly modelsSpecificationAssembly
         // let vmc = AssemblyHelpers.loadViewModuleTypeSpecification vmspecificationAsm
-        let vmcTemplate = FSharp.ViewModule.MvvmCross.MvvmCrossViewModuleTypeSpecification() :> IViewModuleTypeSpecification
+        // let vmcTemplate = FSharp.ViewModule.MvvmCross.MvvmCrossViewModuleTypeSpecification() :> IViewModuleTypeSpecification
 
         let types =
             Assembly.types masm

@@ -6,7 +6,7 @@ open FsUnit
 open FSharp.ViewModule
 open System.ComponentModel
 
-type ViewModels = ViewModelProvider<"FSharp.ViewModule.Tests.Model", "FSharp.ViewModule.MvvmCross">
+type ViewModels = ViewModelProvider<"FSharp.ViewModule.Tests.Model", "FSharp.ViewModule.MvvmCross", "FSharp.ViewModule.MvvmCross.ViewModuleTypeSpecification">
 
 [<Test>]
 let ``Can create an instance of Home ViewModule`` () =
