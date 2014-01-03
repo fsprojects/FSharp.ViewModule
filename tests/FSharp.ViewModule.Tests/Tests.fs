@@ -11,7 +11,7 @@ type ViewModels = ViewModelProvider<"FSharp.ViewModule.Tests.Model", "FSharp.Vie
 [<Test>]
 let ``Can create an instance of Home ViewModule`` () =
   let home = ViewModels.Home()
-  home.Fullname |> should equal " "
+  home.Fullname |> should equal " "  
 
 [<Test>]
 let ``Setting names in Home ViewModule should raise Property Changed`` () =
@@ -22,11 +22,10 @@ let ``Setting names in Home ViewModule should raise Property Changed`` () =
   home.Firstname <- "Foo"
   home.Lastname <- "Bar"
 
-  resArr.Count |> should equal 4
-  resArr.[0] |> should equal "Firstname"
-  resArr.[1] |> should equal "Fullname"
-  resArr.[2] |> should equal "Lastname"
-  resArr.[3] |> should equal "Fullname"
+  resArr.Count |> should be (greaterThanOrEqualTo 4)
+  resArr |> should contain "Firstname"
+  resArr |> should contain "Lastname"
+  resArr |> should contain "Fullname"
 
 [<Test>]
 let ``Click in command should increment ClickCount`` () =

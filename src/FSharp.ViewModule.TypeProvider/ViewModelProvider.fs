@@ -313,7 +313,14 @@ type ViewModelTypeProvider (cfg: TypeProviderConfig) as this =
     let pn = "ViewModelProvider"
 
     let tempAsm = ProvidedAssembly(Path.ChangeExtension(Path.GetTempFileName(), ".dll"))
-    let parameters = [ProvidedStaticParameter ("modelsAssembly", typeof<string>) ; ProvidedStaticParameter("modelsSpecificationAssembly", typeof<string>) ; ProvidedStaticParameter("modelsSpecification", typeof<string>) ]
+    // TODO: See if there's a way to find the appropriate assembly/specification at runtime via reflection.
+    // It appears this doesn't work with PCL assemblies, however, which is why they're currently being specified here.
+    let parameters = 
+        [
+        ProvidedStaticParameter ("modelsAssembly", typeof<string>) 
+        ; ProvidedStaticParameter("modelsSpecificationAssembly", typeof<string>) 
+        ; ProvidedStaticParameter("modelsSpecification", typeof<string>) 
+        ]
     
     do
         // THIS IS NECESSARY
@@ -347,7 +354,7 @@ type ViewModelTypeProvider (cfg: TypeProviderConfig) as this =
     member internal this.LoadAssemblyByFilename fileName =
         match cfg |> TypeProviderConfig.tryFindAssembly (fun fullPath -> Path.GetFileNameWithoutExtension fullPath = fileName) with
         | None -> failwithf "Invalid models assembly name %s. Pick from the list of referenced assemblies." fileName
-        | Some masmFileName -> TypeProvider.loadAssemblyFile masmFileName
+        | Some masmFileName -> AssemblyHelpers.loadFile masmFileName
 
     /// GenerateTypes
     member internal this.GenerateTypes (typeName: string) (args: obj[]) =
@@ -357,13 +364,7 @@ type ViewModelTypeProvider (cfg: TypeProviderConfig) as this =
 
         let masm = this.LoadAssemblyByFilename modelsAssembly
         let vmcAssembly = this.LoadAssemblyByFilename modelsSpecificationAssembly
-
         let vmcTemplate =  AssemblyHelpers.loadViewModuleTypeSpecification vmcAssembly modelsSpecification
-
-        // TODO: We should find the specification dynamically from the second assembly specification
-        // let vmspecificationAsm = this.FindModelsAssembly modelsSpecificationAssembly
-        // let vmc = AssemblyHelpers.loadViewModuleTypeSpecification vmspecificationAsm
-        // let vmcTemplate = FSharp.ViewModule.MvvmCross.MvvmCrossViewModuleTypeSpecification() :> IViewModuleTypeSpecification
 
         let types =
             Assembly.types masm

@@ -48,53 +48,10 @@ module internal TypeProviderConfig =
         cfg.ReferencedAssemblies |> Array.tryFind predicate
 
 [<RequireQualifiedAccess>]
-module internal TypeProvider =
-    /// Load an assembly file properly for a type provider.
-    let loadAssemblyFile fileName = File.ReadAllBytes fileName |> Assembly.Load
-
-[<RequireQualifiedAccess>]
 module internal AssemblyHelpers =
-    /// Used to load assemblies into a remote appdomain and search them
-    type RemoteAssemblyLoader() =
-        inherit MarshalByRefObject()
-
-        member this.CheckAssembly (predicate : Assembly -> bool) path =
-            let assembly = Assembly.LoadFrom(path)
-            predicate(assembly)
-
-    let private matchingType (t : Type) = 
-        let ifs = t.GetInterfaces() 
-        ifs |> Array.exists (fun t -> t = typeof<IViewModuleTypeSpecification>)
-
-    let private predicate (assembly : Assembly) =
-        try
-            assembly.GetTypes()
-            |> Array.exists matchingType
-        with
-        | exn -> false
-         
-    /// Finds the appropriate type specifier from the referenced assemblies of the project, without
-    /// loading them into the current AppDomain
-    let findViewModuleTypeSpecification (referencedAssemblies : string []) =
-        // let appDomain = AppDomain.CreateDomain("ViewModuleTypeCheckDomain")
-        let loadType = typeof<RemoteAssemblyLoader>
-        let loader = RemoteAssemblyLoader() // appDomain.CreateInstanceAndUnwrap(loadType.Assembly.FullName, loadType.FullName) :?> RemoteAssemblyLoader
-
-        let matches =
-            referencedAssemblies
-            |> Array.filter (loader.CheckAssembly predicate)
-
-        // AppDomain.Unload(appDomain)
-
-        match matches.Length with
-        | 0 -> None
-        | _ -> Some matches.[0]
+    /// Load an assembly file properly for a type provider.
+    let loadFile fileName = File.ReadAllBytes fileName |> Assembly.Load
 
     let loadViewModuleTypeSpecification (assembly : Assembly) typeName =
-//        let vmType =
-//            referencedAssemblies
-//            |> Seq.map Assembly.LoadFrom
-//            |> Seq.map (fun a -> a.GetType(typeName))
-//            |> Seq.find (fun t -> t <> null)
         let vmType = assembly.GetType(typeName)
         Activator.CreateInstance(vmType) :?> IViewModuleTypeSpecification
