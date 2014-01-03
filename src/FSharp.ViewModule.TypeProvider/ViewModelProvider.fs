@@ -37,86 +37,32 @@ open Microsoft.FSharp.Quotations.ExprShape
 open ProviderImplementation
 open ProviderImplementation.ProvidedTypes
 
-open Cirrious.MvvmCross.ViewModels
-
-(********************************************************************
-IMPORTANT!
-
-Type-provider is still directly tied to MvvmCross; this needs to be
-broken out soon.
-********************************************************************)
-
-/// Public
-[<RequireQualifiedAccess>]
-module MvxCommand =
-    let create (f: unit -> unit) = MvxCommand (Action (f))
-
-// Helpers
-
-/// Helps use a Type safely.
-[<RequireQualifiedAccess>]
-module internal Type =
-    let tryMethod name (t: Type) =
-        match t.GetMethod name with
-        | null  -> None
-        | x     -> Some x
-
-    let recordFields (t: Type) = FSharpType.GetRecordFields t |> List.ofArray
-
-    let methods (t: Type) = t.GetMethods () |> List.ofArray
-
-    let moduleFunctions (t: Type) =
-        methods t
-        |> List.filter (fun x -> 
-        x.Name <> "GetType" && 
-        x.Name <> "GetHashCode" && 
-        x.Name <> "Equals" && 
-        x.Name <> "ToString")
-
-/// Helps use an Assembly safely.
-[<RequireQualifiedAccess>]
-module internal Assembly =
-    let tryType name (asm: Assembly) =
-        match asm.GetType name with
-        | null  -> None
-        | x     -> Some x
-
-    let types (asm: Assembly) = asm.GetTypes () |> List.ofArray
-
-[<RequireQualifiedAccess>]
-module internal TypeProviderConfig =
-    let tryFindAssembly predicate (cfg: TypeProviderConfig) =
-        cfg.ReferencedAssemblies |> Array.tryFind predicate
-
-[<RequireQualifiedAccess>]
-module internal TypeProvider =
-    /// Load an assembly file properly for a type provider.
-    let loadAssemblyFile fileName = File.ReadAllBytes fileName |> Assembly.Load
-
-// End Helpers
+open FSharp.ViewModule.Helpers
 
 /// Contains the association of model and module types.
-type internal MvxViewModelInfo = { ModelType: Type; ModuleType: Type; State: FieldInfo }
+type internal vmViewModelInfo = { ModelType: Type; ModuleType: Type; State: FieldInfo }
 
 /// Discriminated union for methods on the view-model.
-type internal MvxMethodInfo =
+type internal vmMethodInfo =
     | Command of string * string
 
-/// Discriminated union for types of mvx properties
-type internal MvxPropertyInfo =
+/// Discriminated union for types of vm properties
+type internal vmPropertyInfo =
     /// Property that has a raise property changed call in the setter.
     | Observable of string * Type * string list
 
     /// Property that returns a value based on observable(s).
     | Computed of string * Type
 
-    /// Property that returns a MvxCommand. Usually causes a side effect and/or new state for the model.
+    /// Property that returns a vmCommand. Usually causes a side effect and/or new state for the model.
     | Command of string * MethodInfo
 
-let internal (|VM|) (vm: MvxViewModelInfo) = vm.ModelType, vm.ModuleType, vm.State
+let internal (|VMC|) (vmc: IViewModuleTypeSpecification) = vmc.ViewModelType, vmc.CommandType
 
-let internal mvxNotifyPropertyChanged this = Expr.Coerce (this, typeof<IMvxNotifyPropertyChanged>)
-let internal raisePropertyChanged = typeof<IMvxNotifyPropertyChanged>.GetMethod ("RaisePropertyChanged", [|typeof<string>|])
+let internal (|VM|) (vm: vmViewModelInfo) = vm.ModelType, vm.ModuleType, vm.State
+
+let internal vmNotifyPropertyChanged this = Expr.Coerce (this, typeof<IRaisePropertyChanged>)
+let internal raisePropertyChanged = typeof<IRaisePropertyChanged>.GetMethod ("RaisePropertyChanged", [|typeof<string>|])
     
 /// Gets the module that is associated with the given model type.
 let internal moduleType (modelType: Type) asm =
@@ -196,12 +142,12 @@ let internal changedFieldNames modelType expr =
 
 let internal namesToSequentialPropertyChanged names this =
     names |> List.map Expr.Value
-    |> List.map (fun x -> Expr.Call (mvxNotifyPropertyChanged this, raisePropertyChanged, [x]))
+    |> List.map (fun x -> Expr.Call (vmNotifyPropertyChanged this, raisePropertyChanged, [x]))
     |> List.fold (fun expr x -> Expr.Sequential (expr, x)) (Expr.Value (()))
 
-let internal propertyGetterCode (VM (modelType, moduleType, state)) = function
+let internal propertyGetterCode (VM (modelType, moduleType, state)) (VMC (viewModelType, commandType)) = function
     | Observable (name, _, _) -> function
-        | [this] -> Expr.PropertyGet (Expr.FieldGet (this, state), state.FieldType.GetProperty name)
+        | [this] -> Expr.PropertyGet (Expr.FieldGet(this, state), state.FieldType.GetProperty(name))
         | _ -> raise <| ArgumentException ()
 
     | Computed (name, _) -> function
@@ -209,16 +155,16 @@ let internal propertyGetterCode (VM (modelType, moduleType, state)) = function
         | _ -> raise <| ArgumentException ()
 
     | Command (name, meth) -> function
-        | [this] ->
+        | [this] ->            
             let var = Var ("vm", typeof<obj>)
             let lambda =
                 Expr.Lambda (var,
                     <@@
-                    fun () ->
+                    fun (arg : obj) ->
                     %%Expr.Call (Expr.Coerce (Expr.Var var, meth.DeclaringType), meth, []) 
                     () @@>)
-
-            <@@ MvxCommand.create (%%Expr.Application (lambda, Expr.Coerce (this, typeof<obj>))) @@>
+            // TODO: This would be better stored as a field, and returned from the property, instead of generated each time
+            Expr.NewObject(commandType.GetConstructor([| typeof<(obj -> unit)>; typeof<(obj -> bool)> |]), [ Expr.Application (lambda, Expr.Coerce (this, typeof<obj>)) ; <@ (fun (o:obj) -> true) @> ])
         | _ -> raise <| ArgumentException ()
 
 let internal propertySetterCode (VM (modelType, moduleType, state)) = function
@@ -232,10 +178,10 @@ let internal propertySetterCode (VM (modelType, moduleType, state)) = function
                     | x -> x)
 
             let sequentialPropertyChanged = namesToSequentialPropertyChanged computedNames this
-
+            
             <@@
             %%Expr.FieldSet (this, state, Expr.NewRecord (state.FieldType, fields))
-            %%Expr.Call (mvxNotifyPropertyChanged this, raisePropertyChanged, [Expr.Value name])
+            %%Expr.Call (vmNotifyPropertyChanged this, raisePropertyChanged, [Expr.Value name])
             %%sequentialPropertyChanged
             () @@>
         | _ -> raise <| ArgumentException ()
@@ -243,19 +189,19 @@ let internal propertySetterCode (VM (modelType, moduleType, state)) = function
     | Computed _ -> raise <| ArgumentException "Computed properties don't have setters."
     | Command _ -> raise <| ArgumentException "Command properties don't have setters."
 
-let internal generateProperty vm prop =
+let internal generateProperty vm vmc prop =
     match prop with
     | Observable (name, t, _) ->
-        ProvidedProperty (name, t, GetterCode = propertyGetterCode vm prop, SetterCode = propertySetterCode vm prop)
+        ProvidedProperty (name, t, GetterCode = propertyGetterCode vm vmc prop, SetterCode = propertySetterCode vm prop)
 
     | Computed (name, t) ->
-        ProvidedProperty (name, t, GetterCode = propertyGetterCode vm prop)
+        ProvidedProperty (name, t, GetterCode = propertyGetterCode vm vmc prop)
 
     | Command (name, _) ->
-        ProvidedProperty (name, typeof<ICommand>, GetterCode = propertyGetterCode vm prop)
+        ProvidedProperty (name, typeof<ICommand>, GetterCode = propertyGetterCode vm vmc prop)
 
 let internal methodInvokeCode (VM (modelType, moduleType, state)) = function
-    | MvxMethodInfo.Command (_, name) -> function
+    | vmMethodInfo.Command (_, name) -> function
         | [this] ->
             let meth = moduleType.GetMethod name
             let changedNames =
@@ -271,13 +217,16 @@ let internal methodInvokeCode (VM (modelType, moduleType, state)) = function
             () @@>
         | _ -> raise <| ArgumentException ()
 
+// TODO: Technically, we don't need a method at all.  We can just build the command (as a field)
+// straight from the Module (or a wrapper method around it) and expose that field via a property
 let internal generateMethod vm meth =
     match meth with
-    | MvxMethodInfo.Command (name, _) ->
-        ProvidedMethod (name, [], typeof<Void>, InvokeCode = methodInvokeCode vm meth) 
+    | vmMethodInfo.Command (name, _) ->
+        let meth = ProvidedMethod (name, [], typeof<Void>, InvokeCode = methodInvokeCode vm meth)         
+        meth
 
 /// Generates a view-model
-let internal generateViewModel vm =
+let internal generateViewModel vm (vmc : IViewModuleTypeSpecification) =
     match vm with
     | VM (modelType, moduleType, state) ->
 
@@ -298,7 +247,7 @@ let internal generateViewModel vm =
     // Get command methods based on if the functions in the module have a return type of the model.
     let cmdMeths =
         funs |> List.filter (fun x -> x.ReturnType = modelType)
-        |> List.map (fun x -> MvxMethodInfo.Command (x.Name + "Fun", x.Name))
+        |> List.map (fun x -> vmMethodInfo.Command (x.Name + "Fun", x.Name))
 
     // Get computeds based on if the functions in the module do not have a return type of the model.
     let comps =
@@ -333,21 +282,21 @@ let internal generateViewModel vm =
     // Get command properties based on the generated command methods.
     let cmds =
         List.map2 (fun x -> function
-            | MvxMethodInfo.Command (name, moduleName) ->
+            | vmMethodInfo.Command (name, moduleName) ->
                 Command (moduleName, x)) meths cmdMeths
-
+                
     // Generate constructor which sets the state field by calling the init function from the module.
     let ctor = ProvidedConstructor ([], InvokeCode = function
         | [this] -> Expr.FieldSet (this, state, Expr.Call (init, []))
         | _ -> raise <| ArgumentException ())
-    let baseCtor = typeof<MvxViewModel>.GetConstructor (BindingFlags.NonPublic ||| BindingFlags.Instance, null, [||], null)
+    let baseCtor = vmc.ViewModelType.GetConstructor (BindingFlags.Public ||| BindingFlags.Instance, null, [||], null)
     ctor.BaseConstructorCall <- fun _ -> baseCtor, []
 
     // Generate properties.
-    let props = observs @ comps @ cmds |> List.map (generateProperty vm)
+    let props = observs @ comps @ cmds |> List.map (generateProperty vm vmc)
 
     // Create view-model type definition.
-    let vmp = ProvidedTypeDefinition (modelType.Name, Some typeof<MvxViewModel>, IsErased = false)
+    let vmp = ProvidedTypeDefinition (modelType.Name, Some vmc.ViewModelType, IsErased = false)
     vmp.SetAttributes (TypeAttributes.Public)
     vmp.AddMember state
     vmp.AddMember ctor
@@ -363,11 +312,9 @@ type ViewModelTypeProvider (cfg: TypeProviderConfig) as this =
     let ns = this.GetType().Namespace
     let pn = "ViewModelProvider"
 
-    let tempAsm = ProvidedAssembly (Path.ChangeExtension (Path.GetTempFileName (), ".dll"))
-
-    let parameters = [
-        ProvidedStaticParameter ("modelsAssembly", typeof<string>) ]
-
+    let tempAsm = ProvidedAssembly(Path.ChangeExtension(Path.GetTempFileName(), ".dll"))
+    let parameters = [ProvidedStaticParameter ("modelsAssembly", typeof<string>) ; ProvidedStaticParameter("modelsSpecificationAssembly", typeof<string>) ]
+    
     do
         // THIS IS NECESSARY
         AppDomain.CurrentDomain.add_AssemblyResolve (fun _ args ->
@@ -379,10 +326,14 @@ type ViewModelTypeProvider (cfg: TypeProviderConfig) as this =
             | Some a -> a
             | None -> null)
     
-        let def = ProvidedTypeDefinition (asm, ns, pn, Some typeof<obj>, IsErased = false) 
-        tempAsm.AddTypes [def]
-        def.DefineStaticParameters (parameters, this.GenerateTypes)
-        this.AddNamespace(ns, [def])
+        try
+            let def = ProvidedTypeDefinition (asm, ns, pn, Some typeof<obj>, IsErased = false) 
+            tempAsm.AddTypes [def]
+            def.DefineStaticParameters (parameters, this.GenerateTypes)
+            this.AddNamespace(ns, [def])
+        with 
+        | exn ->
+            printfn "%s" exn.Message
 
     /// FindModelsAssembly
     member internal this.FindModelsAssembly fileName =
@@ -393,22 +344,31 @@ type ViewModelTypeProvider (cfg: TypeProviderConfig) as this =
     /// GenerateTypes
     member internal this.GenerateTypes (typeName: string) (args: obj[]) =
         let modelsAssembly = args.[0] :?> string
+        let modelsSpecificationAssembly = args.[1] :?> string
 
         let masm = this.FindModelsAssembly modelsAssembly
 
-        let def = ProvidedTypeDefinition (asm, ns, typeName, Some typeof<obj>, IsErased = false) 
-        tempAsm.AddTypes [def]
+        // TODO: We should find the specification dynamically from the second assembly specification
+        // let vmspecificationAsm = this.FindModelsAssembly modelsSpecificationAssembly
+        // let vmc = AssemblyHelpers.loadViewModuleTypeSpecification vmspecificationAsm
+        let vmcTemplate = FSharp.ViewModule.MvvmCross.MvvmCrossViewModuleTypeSpecification() :> IViewModuleTypeSpecification
 
         let types =
             Assembly.types masm
             |> List.filter (fun x -> FSharpType.IsRecord x)
             |> List.map (fun x ->
-                let state = ProvidedField ("state", x)
-                state.SetFieldAttributes (FieldAttributes.Private ||| FieldAttributes.InitOnly)
-                { ModelType = x; ModuleType = moduleType x masm; State = state })
+                let state = ProvidedField("state", x)
+                state.SetFieldAttributes(FieldAttributes.Private)
+                ({ ModelType = x; ModuleType = moduleType x masm; State = state }, vmcTemplate))
+
+        let def = ProvidedTypeDefinition (asm, ns, typeName, Some typeof<obj>, IsErased = false) 
+        tempAsm.AddTypes [def]
 
         def.AddMembersDelayed <| fun () -> 
-            let defs = List.map generateViewModel types
+            let defs = 
+                types 
+                |> List.map  (fun t -> 
+                    generateViewModel (fst t) (snd t) )
             tempAsm.AddTypes defs
             defs
 

@@ -22,19 +22,19 @@
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
     <Tailcalls>false</Tailcalls>
-    <OutputPath>bin\Debug\</OutputPath>
+    <OutputPath>C:\Users\Reed\Documents\GitHub\FSharp.ViewModule\bin\Debug\</OutputPath>
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <WarningLevel>3</WarningLevel>
-    <DocumentationFile>bin\Debug\FSharp.ViewModule.MvvmCross.XML</DocumentationFile>
+    <DocumentationFile>C:\Users\Reed\Documents\GitHub\FSharp.ViewModule\bin\Debug\FSharp.ViewModule.MvvmCross.XML</DocumentationFile>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
     <Tailcalls>true</Tailcalls>
-    <OutputPath>bin\Release\</OutputPath>
+    <OutputPath>C:\Users\Reed\Documents\GitHub\FSharp.ViewModule\bin</OutputPath>
     <DefineConstants>TRACE</DefineConstants>
     <WarningLevel>3</WarningLevel>
-    <DocumentationFile>bin\Release\FSharp.ViewModule.MvvmCross.XML</DocumentationFile>
+    <DocumentationFile>C:\Users\Reed\Documents\GitHub\FSharp.ViewModule\bin\FSharp.ViewModule.MvvmCross.XML</DocumentationFile>
   </PropertyGroup>
   <PropertyGroup>
     <MinimumVisualStudioVersion Condition="'$(MinimumVisualStudioVersion)' == ''">12</MinimumVisualStudioVersion>

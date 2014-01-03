@@ -11,6 +11,11 @@ type INotifyCommand =
     /// Trigger the CanExecuteChanged event for this specific ICommand
     abstract RaiseCanExecuteChanged : unit -> unit
 
+/// Interface used to explicitly raise PropertyChanged
+type IRaisePropertyChanged =
+    inherit INotifyPropertyChanged
+
+    abstract RaisePropertyChanged : string -> unit
 
 /// Results of a validation for the member of a type
 type ValidationResult = { MemberName : string ; Errors : string list }
@@ -18,15 +23,10 @@ type ValidationResult = { MemberName : string ; Errors : string list }
 
 /// <summary>Extension of INotifyPropertyChanged with a public method to fire the PropertyChanged event</summary>
 /// <remarks>This type should provide a constructor which accepts no arguments, and one which accepts a Model</remarks>
-type IViewModel<'a> =
+type IViewModel =
     inherit INotifyPropertyChanged
+    inherit IRaisePropertyChanged
     inherit INotifyDataErrorInfo
-
-    /// The current state (model)
-    abstract State : 'a
-
-    /// Trigger the PropertyChanged event for this specific ViewModel
-    abstract RaisePropertyChanged : string -> unit
     
     /// Value used to notify view that an asynchronous operation is executing
     abstract OperationExecuting : bool with get, set

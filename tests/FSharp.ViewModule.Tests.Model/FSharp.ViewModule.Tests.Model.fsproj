@@ -5,36 +5,32 @@
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <SchemaVersion>2.0</SchemaVersion>
-    <ProjectGuid>169c282c-76a9-4799-8f16-ea5c07259e82</ProjectGuid>
+    <ProjectGuid>16fc64b9-be34-4262-b795-e2388e473dc1</ProjectGuid>
     <OutputType>Library</OutputType>
-    <RootNamespace>FSharp.ViewModule.TypeProvider</RootNamespace>
-    <AssemblyName>FSharp.ViewModule.TypeProvider</AssemblyName>
+    <RootNamespace>FSharp.ViewModule.Tests.Model</RootNamespace>
+    <AssemblyName>FSharp.ViewModule.Tests.Model</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <TargetFSharpCoreVersion>4.3.1.0</TargetFSharpCoreVersion>
-    <Name>FSharp.ViewModule.TypeProvider</Name>
-    <SolutionDir Condition="$(SolutionDir) == '' Or $(SolutionDir) == '*Undefined*'">..\..\</SolutionDir>
-    <RestorePackages>true</RestorePackages>
+    <Name>FSharp.ViewModule.Tests.Model</Name>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
     <Tailcalls>false</Tailcalls>
-    <OutputPath>C:\Users\Reed\Documents\GitHub\FSharp.ViewModule\bin\Debug\</OutputPath>
+    <OutputPath>bin\Debug\</OutputPath>
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <WarningLevel>3</WarningLevel>
-    <DocumentationFile>C:\Users\Reed\Documents\GitHub\FSharp.ViewModule\bin\Debug\FSharp.ViewModule.TypeProvider.XML</DocumentationFile>
-    <StartAction>Program</StartAction>
-    <StartProgram>D:\Program Files (x86)\Microsoft Visual Studio 12.0\Common7\IDE\devenv.exe</StartProgram>
+    <DocumentationFile>bin\Debug\FSharp.ViewModule.Tests.Model.XML</DocumentationFile>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
     <Tailcalls>true</Tailcalls>
-    <OutputPath>C:\Users\Reed\Documents\GitHub\FSharp.ViewModule\bin\</OutputPath>
+    <OutputPath>bin\Release\</OutputPath>
     <DefineConstants>TRACE</DefineConstants>
     <WarningLevel>3</WarningLevel>
-    <DocumentationFile>C:\Users\Reed\Documents\GitHub\FSharp.ViewModule\bin\FSharp.ViewModule.TypeProvider.XML</DocumentationFile>
+    <DocumentationFile>bin\Release\FSharp.ViewModule.Tests.Model.XML</DocumentationFile>
   </PropertyGroup>
   <PropertyGroup>
     <MinimumVisualStudioVersion Condition="'$(MinimumVisualStudioVersion)' == ''">11</MinimumVisualStudioVersion>
@@ -52,14 +48,9 @@
     </Otherwise>
   </Choose>
   <Import Project="$(FSharpTargetsPath)" />
-  <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
   <ItemGroup>
-    <Compile Include="ProvidedTypes\Signatures\ProvidedTypes.fsi" />
-    <Compile Include="ProvidedTypes\Code\ProvidedTypes.fs" />
-    <Compile Include="ProvidedTypes\Code\Debug.fs" />
-    <None Include="packages.config" />
-    <Compile Include="Helpers.fs" />
-    <Compile Include="ViewModelProvider.fs" />
+    <Compile Include="Home.fs" />
+    <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="mscorlib" />
@@ -69,19 +60,6 @@
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Numerics" />
-    <Reference Include="System.Windows" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\FSharp.ViewModule.Core\FSharp.ViewModule.Core.fsproj">
-      <Name>FSharp.ViewModule.Core</Name>
-      <Project>{bee71954-6ea6-4fee-9362-a9233bb9ee0f}</Project>
-      <Private>True</Private>
-    </ProjectReference>
-    <ProjectReference Include="..\FSharp.ViewModule.MvvmCross\FSharp.ViewModule.MvvmCross.fsproj">
-      <Name>FSharp.ViewModule.MvvmCross</Name>
-      <Project>{61cff60e-a53a-478b-a4c4-d6a4de70ab10}</Project>
-      <Private>True</Private>
-    </ProjectReference>
   </ItemGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

@@ -7,28 +7,19 @@ open Cirrious.MvvmCross.ViewModels
 open FSharp.ViewModule
 
 /// MvvmCross based command implementation
-type FvxCommand(execute : obj->unit, canExecute : obj -> bool) =
+type FvxCommand(execute : obj -> unit, canExecute : obj -> bool) =
     inherit MvxCommand<obj>(System.Action<obj>(execute), Func<obj,bool>(canExecute))
     interface INotifyCommand with
         member this.RaiseCanExecuteChanged() = this.RaiseCanExecuteChanged()
 
 /// MvvmCross based view model implementation
-type FvxViewModel<'a>(state : 'a) =
+type FvxViewModel() =
     inherit MvxViewModel()
     
     // Used for error tracking (TODO)
     let errorsChanged = new Event<EventHandler<DataErrorsChangedEventArgs>, DataErrorsChangedEventArgs>()
 
     let mutable operationExecuting = false
-    let mutable state = state
-
-    member this.State 
-        with get() = state
-        and set v = 
-            if (not(obj.ReferenceEquals(state, v))) then
-                state <- v
-                this.RaisePropertyChanged(PropertyChangedEventArgs("State"))
-
     member this.OperationExecuting
         with get() = 
             operationExecuting 
@@ -47,8 +38,7 @@ type FvxViewModel<'a>(state : 'a) =
         [<CLIEvent>]
         member this.ErrorsChanged = errorsChanged.Publish
         
-    interface IViewModel<'a> with
-        member this.State with get() = this.State
+    interface IViewModel with
         member this.RaisePropertyChanged (propertyName : string) = this.RaisePropertyChanged(propertyName)
         member this.OperationExecuting 
             with get() = this.OperationExecuting 
@@ -58,7 +48,7 @@ type FvxViewModel<'a>(state : 'a) =
 
 type MvvmCrossViewModuleTypeSpecification() =    
     interface IViewModuleTypeSpecification with
-        member this.ViewModelType = typedefof<FvxViewModel<_>>
+        member this.ViewModelType = typeof<FvxViewModel>
         member this.CommandType = typeof<FvxCommand>
         // TODO: Make platform "work" given our requirements
         member this.Platform = { Framework = ".NET" }
