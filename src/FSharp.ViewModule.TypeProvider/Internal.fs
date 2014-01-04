@@ -50,7 +50,7 @@ type ViewModelMethodInfo =
 /// Discriminated union for types of vm properties
 type ViewModelPropertyInfo =
     /// Property that has a raise property changed call in the setter.
-    | Observable of string * Type * string list
+    | Observable of string * Type
 
     /// Property that returns a value based on observable(s).
     | Computed of string * Type
@@ -64,6 +64,9 @@ let (|VM|) (vm: ViewModelInfo) = vm.ModelType, vm.ModuleType, vm.State
 
 let notifyPropertyChanged this = Expr.Coerce (this, typeof<IRaisePropertyChanged>)
 let raisePropertyChanged = typeof<IRaisePropertyChanged>.GetMethod ("RaisePropertyChanged", [|typeof<string>|])
+
+let viewModel this = Expr.Coerce (this, typeof<IViewModel>)
+let addNotifyComputeds = typeof<IViewModel>.GetMethod ("AddNotifyComputeds", [|typeof<string>; typeof<string list>|])
     
 /// Gets the module that is associated with the given model type.
 let moduleType (modelType: Type) asm =
@@ -146,8 +149,13 @@ let namesToSequentialPropertyChanged names this =
     |> List.map (fun x -> Expr.Call (notifyPropertyChanged this, raisePropertyChanged, [x]))
     |> List.fold (fun expr x -> Expr.Sequential (expr, x)) (Expr.Value (()))
 
+let computedMapToSequentialAddNotifyComputeds (map: Map<string, string list>) this =
+    map |> Map.toList |> List.map (fun (x, y) -> Expr.Value x,Expr.Value y)
+    |> List.map (fun (x, y) -> Expr.Call (viewModel this, addNotifyComputeds, [x;y]))
+    |> List.fold (fun expr x -> Expr.Sequential (expr, x)) (Expr.Value (()))
+
 let propertyGetterCode (VM (modelType, moduleType, state)) (VMC (viewModelType, commandType)) = function
-    | Observable (name, _, _) -> function
+    | Observable (name, _) -> function
         | [this] -> Expr.PropertyGet (Expr.FieldGet(this, state), state.FieldType.GetProperty(name))
         | _ -> raise <| ArgumentException ()
 
@@ -169,7 +177,7 @@ let propertyGetterCode (VM (modelType, moduleType, state)) (VMC (viewModelType, 
         | _ -> raise <| ArgumentException ()
 
 let propertySetterCode (VM (modelType, moduleType, state)) = function
-    | Observable (name, _, computedNames) -> function
+    | Observable (name, _) -> function
         | [this; value] ->
             let fields =
                 Type.recordFields modelType
@@ -177,13 +185,10 @@ let propertySetterCode (VM (modelType, moduleType, state)) = function
                 |> List.map (function
                     | PropertyGet (_, p, _) when p.Name = name -> value
                     | x -> x)
-
-            let sequentialPropertyChanged = namesToSequentialPropertyChanged computedNames this
             
             <@@
             %%Expr.FieldSet (this, state, Expr.NewRecord (state.FieldType, fields))
             %%Expr.Call (notifyPropertyChanged this, raisePropertyChanged, [Expr.Value name])
-            %%sequentialPropertyChanged
             () @@>
         | _ -> raise <| ArgumentException ()
 
@@ -192,7 +197,7 @@ let propertySetterCode (VM (modelType, moduleType, state)) = function
 
 let generateProperty vm vmc prop =
     match prop with
-    | Observable (name, t, _) ->
+    | Observable (name, t) ->
         ProvidedProperty (name, t, GetterCode = propertyGetterCode vm vmc prop, SetterCode = propertySetterCode vm prop)
 
     | Computed (name, t) ->
@@ -250,32 +255,35 @@ let generateViewModel vm (vmc : IViewModuleTypeSpecification) =
         funs |> List.filter (fun x -> x.ReturnType = modelType)
         |> List.map (fun x -> ViewModelMethodInfo.Command (x.Name + "Fun", x.Name))
 
+    // Get observables based on model fields and computed names.
+    let observs = fields |> List.map (fun x -> Observable (x.Name, x.PropertyType))
+
     // Get computeds based on if the functions in the module do not have a return type of the model.
     let comps =
         funs |> List.filter (fun x -> x.ReturnType <> modelType)
         |> List.map (fun x -> Computed (x.Name, x.ReturnType))
 
-    // Structure that contains which functions use the model's fields that can be computed.
-    // <method, fields>
-    let compsMap = 
-        comps
+    // Initialze our structure that contains which functions use the model's fields that can be computed.
+    // <observable, computeds>
+    let compMapInit =
+        observs
         |> List.fold (fun map -> function
+            | Observable (name, _) -> 
+                Map.add name [] map
+            | _ -> map) Map.empty<string, string list>
+
+    // Get the <observable, computeds> structure
+    let compMap = 
+        comps
+        |> List.fold (fun compMap -> function
             | Computed (name, _) ->
                 match Expr.TryGetReflectedDefinition (moduleType.GetMethod (name)) with
                 | None -> failwithf "Reflected defintion for function, %s, could not be found." name
-                | Some x -> Map.add name (computedFieldNames vm.ModelType x) map
-            | _ -> map) Map.empty<string, string list>
-
-    // Get observables based on model fields and computed names.
-    let observs =
-        fields
-        |> List.fold (fun observs x ->
-            let computedNames =
-                compsMap
-                |> Map.fold (fun fields key -> function
-                    | y when y |> List.exists (fun z -> z = x.Name) -> key :: fields
-                    | _ -> fields) []
-            Observable (x.Name, x.PropertyType, computedNames) :: observs) []
+                | Some x ->
+                let names = computedFieldNames vm.ModelType x
+                compMap
+                |> Map.map (fun key valu -> if names |> List.exists ((=)key) then name :: valu else valu) 
+            | _ -> compMap) compMapInit
 
     // Generate methods based on command methods.
     let meths = cmdMeths |> List.map (generateMethod vm)
@@ -288,7 +296,13 @@ let generateViewModel vm (vmc : IViewModuleTypeSpecification) =
                 
     // Generate constructor which sets the state field by calling the init function from the module.
     let ctor = ProvidedConstructor ([], InvokeCode = function
-        | [this] -> Expr.FieldSet (this, state, Expr.Call (init, []))
+        | [this] -> 
+            let sequentialAddNotifyComputeds = computedMapToSequentialAddNotifyComputeds compMap this
+            <@@
+            %%Expr.FieldSet (this, state, Expr.Call (init, []))
+            %%sequentialAddNotifyComputeds
+            () @@>
+
         | _ -> raise <| ArgumentException ())
     let baseCtor = vmc.ViewModelType.GetConstructor (BindingFlags.Public ||| BindingFlags.Instance, null, [||], null)
     ctor.BaseConstructorCall <- fun _ -> baseCtor, []

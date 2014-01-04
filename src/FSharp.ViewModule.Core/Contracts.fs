@@ -33,3 +33,7 @@ type IViewModel =
 
     /// Setup all errors for validation
     abstract SetErrors : ValidationResult seq -> unit
+
+    /// Adds a permanent handler on PropertyChanged.
+    /// If the given property name is the one that was changed, then notify the list of computed names.
+    abstract AddNotifyComputeds : string * string list -> unit

@@ -14,7 +14,7 @@ type FvxCommand(execute : obj -> unit, canExecute : obj -> bool) =
         member this.RaiseCanExecuteChanged() = this.RaiseCanExecuteChanged()
 
 /// MvvmCross based view model implementation
-type FvxViewModel() =
+type FvxViewModel() as vm =
     inherit MvxViewModel()
     
     // Used for error tracking (TODO)
@@ -41,11 +41,18 @@ type FvxViewModel() =
         
     interface IViewModel with
         member this.RaisePropertyChanged (propertyName : string) = this.RaisePropertyChanged(propertyName)
+
         member this.OperationExecuting 
             with get() = this.OperationExecuting 
             and set v = this.OperationExecuting <- v
+
         member this.SetErrors (validationResults : ValidationResult seq) =
             ()
+
+        member this.AddNotifyComputeds (propertyName: string, computedNames: string list) =
+            vm.PropertyChanged.Add (function
+                | x when x.PropertyName = propertyName -> computedNames |> List.iter this.RaisePropertyChanged
+                | _ -> ())
 
 type ViewModuleTypeSpecification() =    
     interface IViewModuleTypeSpecification with
