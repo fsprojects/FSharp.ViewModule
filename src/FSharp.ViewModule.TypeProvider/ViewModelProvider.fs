@@ -1,5 +1,5 @@
 ﻿(*
-Copyright (c) 2013 William F. Smith
+Copyright (c) 2013-2014 FSharp.ViewModule Team
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -40,14 +40,14 @@ open ProviderImplementation.ProvidedTypes
 open FSharp.ViewModule.Helpers
 
 /// Contains the association of model and module types.
-type internal vmViewModelInfo = { ModelType: Type; ModuleType: Type; State: FieldInfo }
+type internal ViewModelInfo = { ModelType: Type; ModuleType: Type; State: FieldInfo }
 
 /// Discriminated union for methods on the view-model.
-type internal vmMethodInfo =
+type internal ViewModelMethodInfo =
     | Command of string * string
 
 /// Discriminated union for types of vm properties
-type internal vmPropertyInfo =
+type internal ViewModelPropertyInfo =
     /// Property that has a raise property changed call in the setter.
     | Observable of string * Type * string list
 
@@ -59,9 +59,9 @@ type internal vmPropertyInfo =
 
 let internal (|VMC|) (vmc: IViewModuleTypeSpecification) = vmc.ViewModelType, vmc.CommandType
 
-let internal (|VM|) (vm: vmViewModelInfo) = vm.ModelType, vm.ModuleType, vm.State
+let internal (|VM|) (vm: ViewModelInfo) = vm.ModelType, vm.ModuleType, vm.State
 
-let internal vmNotifyPropertyChanged this = Expr.Coerce (this, typeof<IRaisePropertyChanged>)
+let internal notifyPropertyChanged this = Expr.Coerce (this, typeof<IRaisePropertyChanged>)
 let internal raisePropertyChanged = typeof<IRaisePropertyChanged>.GetMethod ("RaisePropertyChanged", [|typeof<string>|])
     
 /// Gets the module that is associated with the given model type.
@@ -142,7 +142,7 @@ let internal changedFieldNames modelType expr =
 
 let internal namesToSequentialPropertyChanged names this =
     names |> List.map Expr.Value
-    |> List.map (fun x -> Expr.Call (vmNotifyPropertyChanged this, raisePropertyChanged, [x]))
+    |> List.map (fun x -> Expr.Call (notifyPropertyChanged this, raisePropertyChanged, [x]))
     |> List.fold (fun expr x -> Expr.Sequential (expr, x)) (Expr.Value (()))
 
 let internal propertyGetterCode (VM (modelType, moduleType, state)) (VMC (viewModelType, commandType)) = function
@@ -181,7 +181,7 @@ let internal propertySetterCode (VM (modelType, moduleType, state)) = function
             
             <@@
             %%Expr.FieldSet (this, state, Expr.NewRecord (state.FieldType, fields))
-            %%Expr.Call (vmNotifyPropertyChanged this, raisePropertyChanged, [Expr.Value name])
+            %%Expr.Call (notifyPropertyChanged this, raisePropertyChanged, [Expr.Value name])
             %%sequentialPropertyChanged
             () @@>
         | _ -> raise <| ArgumentException ()
@@ -201,7 +201,7 @@ let internal generateProperty vm vmc prop =
         ProvidedProperty (name, typeof<ICommand>, GetterCode = propertyGetterCode vm vmc prop)
 
 let internal methodInvokeCode (VM (modelType, moduleType, state)) = function
-    | vmMethodInfo.Command (_, name) -> function
+    | ViewModelMethodInfo.Command (_, name) -> function
         | [this] ->
             let meth = moduleType.GetMethod name
             let changedNames =
@@ -221,7 +221,7 @@ let internal methodInvokeCode (VM (modelType, moduleType, state)) = function
 // straight from the Module (or a wrapper method around it) and expose that field via a property
 let internal generateMethod vm meth =
     match meth with
-    | vmMethodInfo.Command (name, _) ->
+    | ViewModelMethodInfo.Command (name, _) ->
         let meth = ProvidedMethod (name, [], typeof<Void>, InvokeCode = methodInvokeCode vm meth)         
         meth
 
@@ -247,7 +247,7 @@ let internal generateViewModel vm (vmc : IViewModuleTypeSpecification) =
     // Get command methods based on if the functions in the module have a return type of the model.
     let cmdMeths =
         funs |> List.filter (fun x -> x.ReturnType = modelType)
-        |> List.map (fun x -> vmMethodInfo.Command (x.Name + "Fun", x.Name))
+        |> List.map (fun x -> ViewModelMethodInfo.Command (x.Name + "Fun", x.Name))
 
     // Get computeds based on if the functions in the module do not have a return type of the model.
     let comps =
@@ -282,7 +282,7 @@ let internal generateViewModel vm (vmc : IViewModuleTypeSpecification) =
     // Get command properties based on the generated command methods.
     let cmds =
         List.map2 (fun x -> function
-            | vmMethodInfo.Command (name, moduleName) ->
+            | ViewModelMethodInfo.Command (name, moduleName) ->
                 Command (moduleName, x)) meths cmdMeths
                 
     // Generate constructor which sets the state field by calling the init function from the module.

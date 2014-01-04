@@ -20,10 +20,10 @@
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
     <Tailcalls>false</Tailcalls>
-    <OutputPath>C:\Users\Reed\Documents\GitHub\FSharp.ViewModule\bin\Debug\</OutputPath>
+    <OutputPath>bin\Debug\</OutputPath>
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <WarningLevel>3</WarningLevel>
-    <DocumentationFile>C:\Users\Reed\Documents\GitHub\FSharp.ViewModule\bin\Debug\FSharp.ViewModule.TypeProvider.XML</DocumentationFile>
+    <DocumentationFile>bin\Debug\FSharp.ViewModule.TypeProvider.XML</DocumentationFile>
     <StartAction>Program</StartAction>
     <StartProgram>D:\Program Files (x86)\Microsoft Visual Studio 12.0\Common7\IDE\devenv.exe</StartProgram>
   </PropertyGroup>
@@ -31,10 +31,10 @@
     <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
     <Tailcalls>true</Tailcalls>
-    <OutputPath>C:\Users\Reed\Documents\GitHub\FSharp.ViewModule\bin\</OutputPath>
+    <OutputPath>bin\Release\</OutputPath>
     <DefineConstants>TRACE</DefineConstants>
     <WarningLevel>3</WarningLevel>
-    <DocumentationFile>C:\Users\Reed\Documents\GitHub\FSharp.ViewModule\bin\FSharp.ViewModule.TypeProvider.XML</DocumentationFile>
+    <DocumentationFile>bin\Release\FSharp.ViewModule.TypeProvider.XML</DocumentationFile>
   </PropertyGroup>
   <PropertyGroup>
     <MinimumVisualStudioVersion Condition="'$(MinimumVisualStudioVersion)' == ''">11</MinimumVisualStudioVersion>
