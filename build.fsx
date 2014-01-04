@@ -25,12 +25,12 @@ let project = "FSharp.ViewModule"
 
 // Short summary of the project
 // (used as description in AssemblyInfo and as a short summary for NuGet package)
-let summary = "Rhe FSharp.ViewModule type provider."
+let summary = "FSharp.ViewModule - Idiomatic F# for MVVM"
 
 // Longer description of the project
 // (used as a description for NuGet package; line breaks are automatically cleaned up)
 let description = """
-  The FSharp.ViewModule type provider. """
+  The FSharp.ViewModule. """
 // List of author names (for NuGet package)
 let authors = [ "Reed Copsey, Jr." ; "Will Smith" ]
 // Tags for your project (for NuGet package)
@@ -58,7 +58,7 @@ let release = parseReleaseNotes (IO.File.ReadAllLines "RELEASE_NOTES.md")
 
 // Generate assembly info files with the right version & up-to-date information
 Target "AssemblyInfo" (fun _ ->
-  let fileName = "src/" + project + "/AssemblyInfo.fs"
+  let fileName = "src/AssemblyInfo.fs"
   CreateFSharpAssemblyInfo fileName
       [ Attribute.Title project
         Attribute.Product project
@@ -66,6 +66,7 @@ Target "AssemblyInfo" (fun _ ->
         Attribute.Version release.AssemblyVersion
         Attribute.FileVersion release.AssemblyVersion ] 
 )
+
 
 // --------------------------------------------------------------------------------------
 // Clean build results & restore NuGet packages

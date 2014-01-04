@@ -80,13 +80,13 @@
       <HintPath>..\..\packages\MvvmCross.HotTuna.MvvmCrossLibraries.3.1.1-beta1\lib\net45\Cirrious.MvvmCross.Wpf.dll</HintPath>
     </Reference>
     <Reference Include="FSharp.ViewModule.Core">
-      <HintPath>..\..\bin\Debug\FSharp.ViewModule.Core.dll</HintPath>
+      <HintPath>..\..\bin\FSharp.ViewModule.Core.dll</HintPath>
     </Reference>
     <Reference Include="FSharp.ViewModule.MvvmCross">
-      <HintPath>..\..\bin\Debug\FSharp.ViewModule.MvvmCross.dll</HintPath>
+      <HintPath>..\..\bin\FSharp.ViewModule.MvvmCross.dll</HintPath>
     </Reference>
     <Reference Include="FSharp.ViewModule.TypeProvider">
-      <HintPath>..\..\bin\Debug\FSharp.ViewModule.TypeProvider.dll</HintPath>
+      <HintPath>..\..\bin\FSharp.ViewModule.TypeProvider.dll</HintPath>
     </Reference>
     <Reference Include="mscorlib" />
     <Reference Include="FSharp.Core, Version=$(TargetFSharpCoreVersion), Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">

@@ -1,4 +1,26 @@
-﻿module FSharp.ViewModule.Helpers
+﻿(*
+Copyright (c) 2013-2014 FSharp.ViewModule Team
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+*)
+
+module internal FSharp.ViewModule.Helpers
 
 open System
 open System.IO
@@ -7,14 +29,14 @@ open System.Reflection
 open Microsoft.FSharp.Core.CompilerServices
 open Microsoft.FSharp.Reflection
 
-open FSharp.ViewModule
 open ProviderImplementation
 open ProviderImplementation.ProvidedTypes
 
+open FSharp.ViewModule.Core
 
 /// Helps use a Type safely.
 [<RequireQualifiedAccess>]
-module internal Type =
+module Type =
     let tryMethod name (t: Type) =
         match t.GetMethod name with
         | null  -> None
@@ -34,7 +56,7 @@ module internal Type =
 
 /// Helps use an Assembly safely.
 [<RequireQualifiedAccess>]
-module internal Assembly =
+module Assembly =
     let tryType name (asm: Assembly) =
         match asm.GetType name with
         | null  -> None
@@ -43,12 +65,12 @@ module internal Assembly =
     let types (asm: Assembly) = asm.GetTypes () |> List.ofArray
 
 [<RequireQualifiedAccess>]
-module internal TypeProviderConfig =
+module TypeProviderConfig =
     let tryFindAssembly predicate (cfg: TypeProviderConfig) =
         cfg.ReferencedAssemblies |> Array.tryFind predicate
 
 [<RequireQualifiedAccess>]
-module internal AssemblyHelpers =
+module AssemblyHelpers =
     /// Load an assembly file properly for a type provider.
     let loadFile fileName = File.ReadAllBytes fileName |> Assembly.Load
 

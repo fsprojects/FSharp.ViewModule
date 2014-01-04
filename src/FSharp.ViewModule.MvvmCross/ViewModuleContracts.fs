@@ -4,7 +4,8 @@ open System
 open System.ComponentModel
 
 open Cirrious.MvvmCross.ViewModels
-open FSharp.ViewModule
+
+open FSharp.ViewModule.Core
 
 /// MvvmCross based command implementation
 type FvxCommand(execute : obj -> unit, canExecute : obj -> bool) =

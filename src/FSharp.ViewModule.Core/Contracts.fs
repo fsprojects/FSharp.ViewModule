@@ -1,4 +1,4 @@
-﻿namespace FSharp.ViewModule
+﻿namespace FSharp.ViewModule.Core
 
 open System.ComponentModel
 open System.Windows.Input

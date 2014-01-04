@@ -1,4 +1,4 @@
-﻿namespace FSharp.ViewModule
+﻿namespace FSharp.ViewModule.Core
 
 open Microsoft.FSharp.Quotations
 open System.Windows.Input

@@ -31,10 +31,10 @@
     <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
     <Tailcalls>true</Tailcalls>
-    <OutputPath>bin\Release\</OutputPath>
+    <OutputPath>..\..\bin\</OutputPath>
     <DefineConstants>TRACE</DefineConstants>
     <WarningLevel>3</WarningLevel>
-    <DocumentationFile>bin\Release\FSharp.ViewModule.TypeProvider.XML</DocumentationFile>
+    <DocumentationFile>..\..\bin\FSharp.ViewModule.TypeProvider.XML</DocumentationFile>
   </PropertyGroup>
   <PropertyGroup>
     <MinimumVisualStudioVersion Condition="'$(MinimumVisualStudioVersion)' == ''">11</MinimumVisualStudioVersion>
@@ -59,6 +59,7 @@
     <Compile Include="ProvidedTypes\Code\Debug.fs" />
     <None Include="packages.config" />
     <Compile Include="Helpers.fs" />
+    <Compile Include="internal.fs" />
     <Compile Include="ViewModelProvider.fs" />
   </ItemGroup>
   <ItemGroup>
