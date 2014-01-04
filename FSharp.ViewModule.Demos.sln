@@ -1,0 +1,59 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2013
+VisualStudioVersion = 12.0.21005.1
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "FSharp.ViewModule.Demos.Core", "demos\FSharp.ViewModule.Demos.Core\FSharp.ViewModule.Demos.Core.fsproj", "{F64D2242-514D-46CC-915B-116E22598F6F}"
+EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "FSharp.ViewModule.Demos.Core.ViewModels", "demos\FSharp.ViewModule.Demos.Core.ViewModels\FSharp.ViewModule.Demos.Core.ViewModels.fsproj", "{B3DFDAA4-43CD-4341-A2A8-92A280639220}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "lib", "lib", "{1FF97A59-E6CE-4660-9D0B-514CE6098362}"
+EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "FSharp.ViewModule.Core", "src\FSharp.ViewModule.Core\FSharp.ViewModule.Core.fsproj", "{BEE71954-6EA6-4FEE-9362-A9233BB9EE0F}"
+EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "FSharp.ViewModule.MvvmCross", "src\FSharp.ViewModule.MvvmCross\FSharp.ViewModule.MvvmCross.fsproj", "{61CFF60E-A53A-478B-A4C4-D6A4DE70AB10}"
+EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "FSharp.ViewModule.TypeProvider", "src\FSharp.ViewModule.TypeProvider\FSharp.ViewModule.TypeProvider.fsproj", "{169C282C-76A9-4799-8F16-EA5C07259E82}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FSharp.ViewModule.Demos.MvvmCross.Wpf", "demos\FSharp.ViewModule.Demos.MvvmCross.Wpf\FSharp.ViewModule.Demos.MvvmCross.Wpf.csproj", "{69FEE742-1C31-476B-B1B4-F2AC5098CEC2}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{F64D2242-514D-46CC-915B-116E22598F6F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F64D2242-514D-46CC-915B-116E22598F6F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F64D2242-514D-46CC-915B-116E22598F6F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F64D2242-514D-46CC-915B-116E22598F6F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B3DFDAA4-43CD-4341-A2A8-92A280639220}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B3DFDAA4-43CD-4341-A2A8-92A280639220}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B3DFDAA4-43CD-4341-A2A8-92A280639220}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B3DFDAA4-43CD-4341-A2A8-92A280639220}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BEE71954-6EA6-4FEE-9362-A9233BB9EE0F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BEE71954-6EA6-4FEE-9362-A9233BB9EE0F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BEE71954-6EA6-4FEE-9362-A9233BB9EE0F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BEE71954-6EA6-4FEE-9362-A9233BB9EE0F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{61CFF60E-A53A-478B-A4C4-D6A4DE70AB10}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{61CFF60E-A53A-478B-A4C4-D6A4DE70AB10}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{61CFF60E-A53A-478B-A4C4-D6A4DE70AB10}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{61CFF60E-A53A-478B-A4C4-D6A4DE70AB10}.Release|Any CPU.Build.0 = Release|Any CPU
+		{169C282C-76A9-4799-8F16-EA5C07259E82}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{169C282C-76A9-4799-8F16-EA5C07259E82}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{169C282C-76A9-4799-8F16-EA5C07259E82}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{169C282C-76A9-4799-8F16-EA5C07259E82}.Release|Any CPU.Build.0 = Release|Any CPU
+		{69FEE742-1C31-476B-B1B4-F2AC5098CEC2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{69FEE742-1C31-476B-B1B4-F2AC5098CEC2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{69FEE742-1C31-476B-B1B4-F2AC5098CEC2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{69FEE742-1C31-476B-B1B4-F2AC5098CEC2}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{BEE71954-6EA6-4FEE-9362-A9233BB9EE0F} = {1FF97A59-E6CE-4660-9D0B-514CE6098362}
+		{61CFF60E-A53A-478B-A4C4-D6A4DE70AB10} = {1FF97A59-E6CE-4660-9D0B-514CE6098362}
+		{169C282C-76A9-4799-8F16-EA5C07259E82} = {1FF97A59-E6CE-4660-9D0B-514CE6098362}
+	EndGlobalSection
+EndGlobal
