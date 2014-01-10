@@ -36,6 +36,8 @@ type FvxViewModel() as vm =
     // Used for error tracking (TODO)
     let errorsChanged = new Event<EventHandler<DataErrorsChangedEventArgs>, DataErrorsChangedEventArgs>()
 
+    let depTracker = DependencyTracker(vm.RaisePropertyChanged, vm.PropertyChanged)
+
     let mutable operationExecuting = false
     member this.OperationExecuting
         with get() = 
@@ -65,10 +67,7 @@ type FvxViewModel() as vm =
         member this.SetErrors (validationResults : ValidationResult seq) =
             ()
 
-        member this.AddNotifyComputeds (propertyName: string, computedNames: string list) =
-            vm.PropertyChanged.Add (function
-                | x when x.PropertyName = propertyName -> computedNames |> List.iter this.RaisePropertyChanged
-                | _ -> ())
+        member this.DependencyTracker = depTracker :> IDependencyTracker
 
 type ViewModuleTypeSpecification() =    
     interface IViewModuleTypeSpecification with

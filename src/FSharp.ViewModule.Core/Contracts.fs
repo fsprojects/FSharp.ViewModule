@@ -19,6 +19,8 @@ namespace FSharp.ViewModule.Core
 open System.ComponentModel
 open System.Windows.Input
 
+open Microsoft.FSharp.Quotations
+
 /// <summary>Extension of ICommand with a public method to fire the CanExecuteChanged event</summary>
 /// <remarks>This type should provide a constructor which accepts an Execute (obj -> unit) and CanExecute (obj -> bool) function</remarks>
 type INotifyCommand =
@@ -36,6 +38,14 @@ type IRaisePropertyChanged =
 /// Results of a validation for the member of a type
 type ValidationResult = { MemberName : string ; Errors : string list }
 
+type IDependencyTracker =
+    abstract AddPropertyDependencies : Expr * Expr list -> unit
+    abstract AddPropertyDependencies : string * string list -> unit
+    abstract AddPropertyDependency : Expr * Expr -> unit
+    abstract AddPropertyDependency : string * string -> unit
+
+    abstract AddCommandDependency : INotifyCommand * Expr -> unit
+    abstract AddCommandDependency : INotifyCommand * string -> unit
 
 /// <summary>Extension of INotifyPropertyChanged with a public method to fire the PropertyChanged event</summary>
 /// <remarks>This type should provide a constructor which accepts no arguments, and one which accepts a Model</remarks>
@@ -50,6 +60,6 @@ type IViewModel =
     /// Setup all errors for validation
     abstract SetErrors : ValidationResult seq -> unit
 
-    /// Adds a permanent handler on PropertyChanged.
-    /// If the given property name is the one that was changed, then notify the list of computed names.
-    abstract AddNotifyComputeds : string * string list -> unit
+    /// Handles management of dependencies for all computed properties 
+    /// as well as ICommand dependencies
+    abstract DependencyTracker : IDependencyTracker

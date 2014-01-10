@@ -59,8 +59,10 @@ let (|VM|) (vm: ViewModelInfo) = vm.ModelType, vm.ModuleType, vm.State
 let notifyPropertyChanged this = Expr.Coerce (this, typeof<IRaisePropertyChanged>)
 let raisePropertyChanged = typeof<IRaisePropertyChanged>.GetMethod ("RaisePropertyChanged", [|typeof<string>|])
 
+
 let viewModel this = Expr.Coerce (this, typeof<IViewModel>)
-let addNotifyComputeds = typeof<IViewModel>.GetMethod ("AddNotifyComputeds", [|typeof<string>; typeof<string list>|])
+let tracker vm = Expr.PropertyGet (vm, typeof<IViewModel>.GetProperty("DependencyTracker"))
+let addNotifyComputeds = typeof<IDependencyTracker>.GetMethod ("AddPropertyDependencies", [|typeof<string>; typeof<string list>|])
     
 /// Gets the module that is associated with the given model type.
 let moduleType (modelType: Type) asm =
@@ -145,7 +147,7 @@ let namesToSequentialPropertyChanged names this =
 
 let computedMapToSequentialAddNotifyComputeds (map: Map<string, string list>) this =
     map |> Map.toList |> List.map (fun (x, y) -> Expr.Value x,Expr.Value y)
-    |> List.map (fun (x, y) -> Expr.Call (viewModel this, addNotifyComputeds, [x;y]))
+    |> List.map (fun (x, y) -> Expr.Call (tracker(viewModel this), addNotifyComputeds, [x;y]))
     |> List.fold (fun expr x -> Expr.Sequential (expr, x)) (Expr.Value (()))
 
 let propertyGetterCode (VM (modelType, moduleType, state)) (VMC (viewModelType, commandType)) = function
@@ -275,8 +277,7 @@ let generateViewModel vm (vmc : IViewModuleTypeSpecification) =
                 | None -> failwithf "Reflected defintion for function, %s, could not be found." name
                 | Some x ->
                 let names = computedFieldNames vm.ModelType x
-                compMap
-                |> Map.map (fun key valu -> if names |> List.exists ((=)key) then name :: valu else valu) 
+                compMap |> Map.add name names |> Map.filter (fun key value -> not(List.isEmpty value))
             | _ -> compMap) compMapInit
 
     // Generate methods based on command methods.

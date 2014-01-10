@@ -32,11 +32,29 @@ module SpecificTests =
         home.Fullname |> should equal " "  
 
     [<Test>]
+    let ``Explicitly adding in existing tracking name shouldn't cause extra PropertyChanged events``() =
+        let home = ViewModels.Home()
+        home.ShouldAlwaysRaiseInpcOnUserInterfaceThread(false) // Required for MvvmCross to not delay the prop changed events
+
+        // Try to force an "extra" property dependency
+        let vm = home :> FSharp.ViewModule.Core.IViewModel
+        vm.DependencyTracker.AddPropertyDependency(<@@ home.Fullname @@>, <@@ home.Firstname @@>)
+
+        let resArr = ResizeArray<string>()
+        use subscription = home.PropertyChanged.Subscribe(fun args -> resArr.Add(args.PropertyName))
+
+        home.Firstname <- "Foo"
+        resArr.Count |> should equal 2
+        resArr |> should contain "Firstname"
+        resArr |> should contain "Fullname"
+
+    [<Test>]
     let ``Setting names in Home ViewModule should raise Property Changed`` () =
         let home = ViewModels.Home()
         home.ShouldAlwaysRaiseInpcOnUserInterfaceThread(false) // Required for MvvmCross to not delay the prop changed events
         let resArr = ResizeArray<string>()
         use subscription = home.PropertyChanged.Subscribe(fun args -> resArr.Add(args.PropertyName))
+
         home.Firstname <- "Foo"
         home.Lastname <- "Bar"
 
