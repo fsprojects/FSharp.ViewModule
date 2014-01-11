@@ -181,11 +181,25 @@ let propertySetterCode (VM (modelType, moduleType, state)) = function
                 |> List.map (function
                     | PropertyGet (_, p, _) when p.Name = name -> value
                     | x -> x)
-            
+
+            // TODO: This should be bound locally, then used for the compare + assignment.
+            // Haven't been able to figure out how to get Expr.Let to work properly in the comparer call yet
+            let newRecord = Expr.NewRecord(state.FieldType, fields)
+
+            // Grab existing state
+            let existing = Expr.FieldGet(this, state)
+
+            // Comparer for model
+            let ctype = typedefof<System.Collections.Generic.EqualityComparer<_>>.MakeGenericType(modelType)
+            let comparer = Expr.PropertyGet(ctype.GetProperty("Default"))
+            let compMethod = ctype.GetMethod("Equals", [| modelType; modelType |])
+
+            // Build our set expression
             <@@
-            %%Expr.FieldSet (this, state, Expr.NewRecord (state.FieldType, fields))
-            %%Expr.Call (notifyPropertyChanged this, raisePropertyChanged, [Expr.Value name])
-            () @@>
+            if (false = %%Expr.Call(comparer, compMethod, [existing ; newRecord] ) : bool) then
+                %%Expr.FieldSet (this, state, newRecord)
+                %%Expr.Call (notifyPropertyChanged this, raisePropertyChanged, [Expr.Value name])
+            @@>
         | _ -> raise <| ArgumentException ()
 
     | Computed _ -> raise <| ArgumentException "Computed properties don't have setters."
