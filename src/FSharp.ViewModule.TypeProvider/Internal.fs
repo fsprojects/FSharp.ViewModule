@@ -182,21 +182,18 @@ let propertySetterCode (VM (modelType, moduleType, state)) = function
                     | PropertyGet (_, p, _) when p.Name = name -> value
                     | x -> x)
 
-            // TODO: This should be bound locally, then used for the compare + assignment.
-            // Haven't been able to figure out how to get Expr.Let to work properly in the comparer call yet
             let newRecord = Expr.NewRecord(state.FieldType, fields)
-
-            // Grab existing state
-            let existing = Expr.FieldGet(this, state)
+            let prop = state.FieldType.GetProperty(name);
+            let existing = Expr.PropertyGet (Expr.FieldGet(this, state), prop)
 
             // Comparer for model
-            let ctype = typedefof<System.Collections.Generic.EqualityComparer<_>>.MakeGenericType(modelType)
+            let ctype = typedefof<System.Collections.Generic.EqualityComparer<_>>.MakeGenericType(prop.PropertyType)
             let comparer = Expr.PropertyGet(ctype.GetProperty("Default"))
-            let compMethod = ctype.GetMethod("Equals", [| modelType; modelType |])
+            let compMethod = ctype.GetMethod("Equals", [| prop.PropertyType; prop.PropertyType |])
 
             // Build our set expression
             <@@
-            if (false = %%Expr.Call(comparer, compMethod, [existing ; newRecord] ) : bool) then
+            if (false = %%Expr.Call(comparer, compMethod, [value ; existing] ) : bool) then
                 %%Expr.FieldSet (this, state, newRecord)
                 %%Expr.Call (notifyPropertyChanged this, raisePropertyChanged, [Expr.Value name])
             @@>
