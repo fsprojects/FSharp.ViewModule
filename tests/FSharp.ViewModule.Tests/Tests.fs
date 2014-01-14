@@ -22,6 +22,8 @@ open FsUnit
 open FSharp.ViewModule
 open System.ComponentModel
 
+open FSharp.ViewModule.Tests.Model
+
 // Builds ViewModels based on "Model" assembly, using "MvvmCross" based classes as the base classes
 type ViewModels = ViewModelProvider<"FSharp.ViewModule.Tests.Model", "FSharp.ViewModule.MvvmCross", "FSharp.ViewModule.MvvmCross.ViewModuleTypeSpecification">
 
@@ -70,3 +72,10 @@ module SpecificTests =
         home.Click.Execute(null)
         home.ClickCount |> should equal 1
 
+    [<Test>]
+    let ``ClickCount should increment when passing in state`` () =
+        let state = { Firstname = "Foo"; Lastname = "Bar" ; ClickCount = 3 }
+        let home = ViewModels.Home(state)
+        home.ClickCount |> should equal 3
+        home.Click.Execute(null)
+        home.ClickCount |> should equal 4

@@ -251,12 +251,6 @@ let generateViewModel vm (vmc : IViewModuleTypeSpecification) =
         Type.moduleFunctions moduleType
         |> List.fold (fun (init, funs) x -> if x.Name = "init" then Some x, funs else init, x :: funs) (None, [])
 
-    // See if we have a valid init function.
-    let init = 
-        match init with
-        | None -> failwithf "Unable to resolve init function in module %s." moduleType.Name
-        | Some x -> x
-
     // Get command methods based on if the functions in the module have a return type of the model.
     let cmdMeths =
         funs |> List.filter (fun x -> x.ReturnType = modelType)
@@ -299,28 +293,44 @@ let generateViewModel vm (vmc : IViewModuleTypeSpecification) =
         List.map2 (fun x -> function
             | ViewModelMethodInfo.Command (name, moduleName) ->
                 Command (moduleName, x)) meths cmdMeths
-                
-    // Generate constructor which sets the state field by calling the init function from the module.
-    let ctor = ProvidedConstructor ([], InvokeCode = function
-        | [this] -> 
-            let sequentialAddNotifyComputeds = computedMapToSequentialAddNotifyComputeds compMap this
-            <@@
-            %%Expr.FieldSet (this, state, Expr.Call (init, []))
-            %%sequentialAddNotifyComputeds
-            () @@>
-
-        | _ -> raise <| ArgumentException ())
-    let baseCtor = vmc.ViewModelType.GetConstructor (BindingFlags.Public ||| BindingFlags.Instance, null, [||], null)
-    ctor.BaseConstructorCall <- fun _ -> baseCtor, []
-
-    // Generate properties.
-    let props = observs @ comps @ cmds |> List.map (generateProperty vm vmc)
 
     // Create view-model type definition.
     let vmp = ProvidedTypeDefinition (modelType.Name, Some vmc.ViewModelType, IsErased = false)
     vmp.SetAttributes (TypeAttributes.Public)
-    vmp.AddMember state
+
+    // Build our constructor(s)
+    match init with
+    | Some initFun ->                
+        // Generate constructor which sets the state field by calling the init function from the module.
+        let ctor = ProvidedConstructor ([], InvokeCode = function
+            | [this] -> 
+                let sequentialAddNotifyComputeds = computedMapToSequentialAddNotifyComputeds compMap this
+                <@@
+                %%Expr.FieldSet (this, state, Expr.Call (initFun, []))
+                %%sequentialAddNotifyComputeds
+                () @@>
+
+            | _ -> raise <| ArgumentException ())
+        let baseCtor = vmc.ViewModelType.GetConstructor (BindingFlags.Public ||| BindingFlags.Instance, null, [||], null)
+        ctor.BaseConstructorCall <- fun _ -> baseCtor, []
+        vmp.AddMember ctor
+    | None -> ()
+
+    let ctor = ProvidedConstructor ([ProvidedParameter("state", modelType)], InvokeCode = (fun args ->
+            let sequentialAddNotifyComputeds = computedMapToSequentialAddNotifyComputeds compMap args.[0]
+            <@@
+            %%Expr.FieldSet (args.[0], state, args.[1])
+            %%sequentialAddNotifyComputeds
+            () @@>))
+
+    let baseCtor = vmc.ViewModelType.GetConstructor (BindingFlags.Public ||| BindingFlags.Instance, null, [||], null)
+    ctor.BaseConstructorCall <- fun _ -> baseCtor, []
     vmp.AddMember ctor
+
+    // Generate properties.
+    let props = observs @ comps @ cmds |> List.map (generateProperty vm vmc)
+
+    vmp.AddMember state
     vmp.AddMembers meths
     vmp.AddMembers props
     vmp
