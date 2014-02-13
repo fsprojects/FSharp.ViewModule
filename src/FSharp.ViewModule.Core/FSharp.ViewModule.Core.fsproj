@@ -45,6 +45,7 @@
   <ItemGroup>
     <Compile Include="Contracts.fs" />
     <Compile Include="DefaultImplementations.fs" />
+    <Compile Include="MVVM.fs" />
     <Compile Include="IViewModuleTypeSpecification.fs" />
   </ItemGroup>
   <PropertyGroup>
