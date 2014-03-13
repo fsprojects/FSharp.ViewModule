@@ -43,8 +43,11 @@
     <Reference Include="System.ComponentModel.DataAnnotations" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Utilities.fs" />
     <Compile Include="Contracts.fs" />
     <Compile Include="DefaultImplementations.fs" />
+    <Compile Include="FunCommand.fs" />
+    <Compile Include="Commands.fs" />
     <Compile Include="MVVM.fs" />
     <Compile Include="IViewModuleTypeSpecification.fs" />
   </ItemGroup>

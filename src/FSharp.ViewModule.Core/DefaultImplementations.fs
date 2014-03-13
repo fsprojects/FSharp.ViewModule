@@ -26,8 +26,8 @@ open Microsoft.FSharp.Quotations
 open Microsoft.FSharp.Quotations.Patterns
 
 [<AutoOpen>]
-module ChangeNotifierUtils =    
-    let internal getPropertyNameFromExpression(expr : Expr) = 
+module internal ChangeNotifierUtils =    
+    let getPropertyNameFromExpression(expr : Expr) = 
         match expr with
         | PropertyGet(a, pi, list) -> pi.Name
         | _ -> ""
