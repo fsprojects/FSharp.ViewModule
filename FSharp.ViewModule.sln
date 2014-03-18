@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2013
-VisualStudioVersion = 12.0.21005.1
+VisualStudioVersion = 12.0.30110.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{1F1B4F0F-2998-4D74-865B-9122611C2B14}"
 	ProjectSection(SolutionItems) = preProject
@@ -40,6 +40,8 @@ Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "FSharp.ViewModule.Core", "s
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "FSharp.ViewModule.TypeProvider", "src\FSharp.ViewModule.TypeProvider\FSharp.ViewModule.TypeProvider.fsproj", "{169C282C-76A9-4799-8F16-EA5C07259E82}"
 EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "FSharp.ViewModule.Core.Wpf", "src\FSharp.ViewModule.Core.Wpf\FSharp.ViewModule.Core.Wpf.fsproj", "{17BAE966-F643-4228-ADA7-050CB179B051}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -58,6 +60,10 @@ Global
 		{169C282C-76A9-4799-8F16-EA5C07259E82}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{169C282C-76A9-4799-8F16-EA5C07259E82}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{169C282C-76A9-4799-8F16-EA5C07259E82}.Release|Any CPU.Build.0 = Release|Any CPU
+		{17BAE966-F643-4228-ADA7-050CB179B051}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{17BAE966-F643-4228-ADA7-050CB179B051}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{17BAE966-F643-4228-ADA7-050CB179B051}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{17BAE966-F643-4228-ADA7-050CB179B051}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
