@@ -18,19 +18,19 @@
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
     <Tailcalls>false</Tailcalls>
-    <OutputPath>C:\Users\Reed\Documents\GitHub\FSharp.ViewModule\bin\Debug\</OutputPath>
+    <OutputPath>..\bin\Debug\</OutputPath>
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <WarningLevel>3</WarningLevel>
-    <DocumentationFile>C:\Users\Reed\Documents\GitHub\FSharp.ViewModule\bin\Debug\FSharp.ViewModule.Core.Wpf.XML</DocumentationFile>
+    <DocumentationFile>..\bin\Debug\FSharp.ViewModule.Core.Wpf.XML</DocumentationFile>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
     <Tailcalls>true</Tailcalls>
-    <OutputPath>C:\Users\Reed\Documents\GitHub\FSharp.ViewModule\bin\</OutputPath>
+    <OutputPath>..\bin\</OutputPath>
     <DefineConstants>TRACE</DefineConstants>
     <WarningLevel>3</WarningLevel>
-    <DocumentationFile>C:\Users\Reed\Documents\GitHub\FSharp.ViewModule\bin\FSharp.ViewModule.Core.Wpf.XML</DocumentationFile>
+    <DocumentationFile>..\bin\FSharp.ViewModule.Core.Wpf.XML</DocumentationFile>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="mscorlib" />
