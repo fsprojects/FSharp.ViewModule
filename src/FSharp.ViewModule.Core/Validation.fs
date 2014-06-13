@@ -41,20 +41,20 @@ module Validators =
         let validation (value : string) = not(value.Contains(" "))
         createValidator str validation "{0} cannot contain a space"
 
-    let notEqual value choice = 
-        createValidator choice (fun v -> value <> v) "{0} cannot equal {1}"
+    let notEqual value step = 
+        createValidator step (fun v -> value <> v) "{0} cannot equal {1}"
 
-    let greater value choice =
-        createValidator choice (fun v -> v > value) "{0} must be greater than {1}"
+    let greater value step =
+        createValidator step (fun v -> v > value) "{0} must be greater than {1}"
 
-    let greaterOrEqual value choice =
-        createValidator choice (fun v -> v >= value) "{0} must be greater than or equal to {1}"
+    let greaterOrEqual value step =
+        createValidator step (fun v -> v >= value) "{0} must be greater than or equal to {1}"
 
-    let lessOrEqual value choice =
-        createValidator choice (fun v -> v < value) "{0} must be less than or equal to {1}"
+    let lessOrEqual value step =
+        createValidator step (fun v -> v < value) "{0} must be less than or equal to {1}"
     
-    let result (choice : ValidationStep<'a>) : Option<string> =
-        match choice with
+    let result (step : ValidationStep<'a>) : Option<string> =
+        match step with
         | Valid(_, value) -> None
         | Invalid(_, err) -> Some err
 
