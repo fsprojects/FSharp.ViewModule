@@ -35,8 +35,14 @@ type IRaisePropertyChanged =
 
     abstract RaisePropertyChanged : string -> unit
 
-/// Results of a validation for the member of a type
-type ValidationResult = { MemberName : string ; Errors : string list }
+/// Results of a validation for the member of a type or an entity.  errorKey is a string identifier unique per "error case"
+type ValidationResult =
+    | PropertyValidation of propertyName : string * errorKey : string * error : string option
+    | EntityValidation of errorKey : string * error : string option
+
+type IValidationTracker =
+    abstract SetResult : ValidationResult -> unit
+    abstract ClearErrors : unit -> unit
 
 type IDependencyTracker =
     abstract AddPropertyDependencies : Expr * Expr list -> unit
@@ -56,9 +62,6 @@ type IViewModel =
     
     /// Value used to notify view that an asynchronous operation is executing
     abstract OperationExecuting : bool with get, set
-
-    /// Setup all errors for validation
-    abstract SetErrors : ValidationResult seq -> unit
 
     /// Handles management of dependencies for all computed properties 
     /// as well as ICommand dependencies

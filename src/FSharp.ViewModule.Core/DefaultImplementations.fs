@@ -32,6 +32,47 @@ module internal ChangeNotifierUtils =
         | PropertyGet(a, pi, list) -> pi.Name
         | _ -> ""
 
+type ValidationEntry = { propertyName : string ; keyName : string }
+
+type ValidationTracker(raiseErrorsChanged : string -> unit, propertyChanged : IObservable<PropertyChangedEventArgs>, entityValidator : string -> ValidationResult seq) =
+    let errorDictionary = Dictionary<ValidationEntry, string>()
+
+    let setErrorState key error =
+        let changed = 
+            match error with
+            | None -> errorDictionary.Remove(key)
+            | Some err ->
+                errorDictionary.[key] <- err
+                true
+        if changed then raiseErrorsChanged(key.propertyName)
+
+    let setResult vr =
+        let key, error = 
+            match vr with
+            | PropertyValidation(pn, ek, err) -> { propertyName = pn; keyName = ek}, err
+            | EntityValidation(ek, err) -> { propertyName = String.Empty; keyName = ek}, err
+        setErrorState key error
+
+    let validateProperties (pcea : PropertyChangedEventArgs) =        
+        entityValidator(pcea.PropertyName)      
+        |> Seq.iter (fun vr -> setResult vr)
+
+    do
+        propertyChanged.Subscribe(validateProperties) |> ignore
+
+    member this.HasErrors with get() = errorDictionary.Count > 0
+    member this.GetErrors propertyName =
+        errorDictionary
+        |> Seq.filter (fun kvp -> kvp.Key.propertyName = propertyName)
+        |> Seq.map (fun kvp -> kvp.Value)
+
+    interface IValidationTracker with
+        member this.SetResult (vr : ValidationResult) = 
+            setResult vr
+        
+        member this.ClearErrors() =
+            errorDictionary.Clear()
+
 /// Default implementation of IDependencyTracker which can be used for any relevent ViewModel
 /// if an implementation does not already exist for the given framework
 type DependencyTracker(raisePropertyChanged : string -> unit, propertyChanged : IObservable<PropertyChangedEventArgs>) as self =    

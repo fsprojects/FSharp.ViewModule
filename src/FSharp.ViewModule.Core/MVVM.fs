@@ -27,22 +27,24 @@ open Microsoft.FSharp.Quotations.Patterns
 
 open FSharp.ViewModule.Core
 
-
 /// Encapsulation of a value which handles raising property changed automatically in a clean manner
 [<AbstractClass>]
 type public NotifyingValue<'a>() =
     /// Extracts the current value from the backing storage
     abstract member Value : 'a with get, set
 
-type internal NotifyingValueBackingField<'a> (propertyName, raisePropertyChanged : string -> unit, defaultValue : 'a) =
+type internal NotifyingValueBackingField<'a> (propertyName, raisePropertyChanged : string -> unit, defaultValue : 'a, validationResultPublisher : IValidationTracker, validate : 'a -> string option) =
     inherit NotifyingValue<'a>()
+    [<Literal>]
+    let backingFieldValidationResultKey = "BackingFieldValidationKey"
     let propertyName = propertyName
     let mutable value = defaultValue
     override this.Value 
         with get() = value 
         and set(v) = 
             if (not (EqualityComparer<'a>.Default.Equals(value, v))) then
-                value <- v
+                value <- v                                
+                validationResultPublisher.SetResult(PropertyValidation(propertyName, backingFieldValidationResultKey, validate(value)))
                 raisePropertyChanged propertyName                
 
 type internal NotifyingValueFuncs<'a> (propertyName, raisePropertyChanged : string -> unit, getter, setter) =
@@ -62,13 +64,14 @@ module ChangeNotifierUtils =
         | PropertyGet(a, pi, list) -> pi.Name
         | _ -> ""
 
-type ViewModelPropertyFactory(dependencyTracker : IDependencyTracker, raisePropertyChanged : string -> unit) =     
+type ViewModelPropertyFactory(dependencyTracker : IDependencyTracker, validationTracker: IValidationTracker, raisePropertyChanged : string -> unit) =     
     let addCommandDependencies cmd dependentProperties =
         let deps : Expr list = defaultArg dependentProperties []
         deps |> List.iter (fun prop -> dependencyTracker.AddCommandDependency(cmd, prop)) 
 
-    member this.Backing (prop : Expr, defaultValue) =
-        NotifyingValueBackingField<'a>(getPropertyNameFromExpression(prop), raisePropertyChanged, defaultValue) :> NotifyingValue<'a>
+    member this.Backing (prop : Expr, defaultValue : 'a, ?validate : 'a -> string option) =
+        let validateFun = defaultArg validate (fun _ -> None)
+        NotifyingValueBackingField<'a>(getPropertyNameFromExpression(prop), raisePropertyChanged, defaultValue, validationTracker, validateFun) :> NotifyingValue<'a>
 
     member this.FromFuncs (prop : Expr, getter, setter) =
         NotifyingValueFuncs<'a>(getPropertyNameFromExpression(prop), raisePropertyChanged, getter, setter) :> NotifyingValue<'a>
@@ -113,16 +116,26 @@ type ViewModelPropertyFactory(dependencyTracker : IDependencyTracker, raisePrope
 type ViewModelBase() as self =
     let propertyChanged = new Event<_, _>()
     let depTracker = DependencyTracker(self.RaisePropertyChanged, propertyChanged.Publish)
-    let vmf = ViewModelPropertyFactory(depTracker :> IDependencyTracker, self.RaisePropertyChanged)        
-
+    
     // Used for error tracking (TODO)
     let errorsChanged = new Event<EventHandler<DataErrorsChangedEventArgs>, DataErrorsChangedEventArgs>()
+    let errorTracker = ValidationTracker(self.RaiseErrorChanged, propertyChanged.Publish, self.Validate)
+    
+    let vmf = ViewModelPropertyFactory(depTracker :> IDependencyTracker, errorTracker :> IValidationTracker, self.RaisePropertyChanged)        
 
     // TODO: This should be set by commands to allow disabling of other commands by default
     let operationExecuting = vmf.Backing(<@ self.OperationExecuting @>, false)
 
     member this.Factory with get() = vmf                    
-    
+
+    // Overridable entity level validation
+    abstract member Validate : string -> ValidationResult seq
+    default this.Validate(propertyName: string) =
+        Seq.empty
+            
+    member private this.RaiseErrorChanged(propertyName : string) =
+        errorsChanged.Trigger(this, new DataErrorsChangedEventArgs(propertyName))
+
     member this.RaisePropertyChanged(propertyName : string) =
         propertyChanged.Trigger(this, new PropertyChangedEventArgs(propertyName))
         
@@ -152,9 +165,9 @@ type ViewModelBase() as self =
 
     interface INotifyDataErrorInfo with
         member this.GetErrors propertyName = 
-            Seq.empty<string> :> System.Collections.IEnumerable
+            errorTracker.GetErrors(propertyName) :> System.Collections.IEnumerable
 
-        member this.HasErrors with get() = false
+        member this.HasErrors with get() = errorTracker.HasErrors
 
         [<CLIEvent>]
         member this.ErrorsChanged = errorsChanged.Publish

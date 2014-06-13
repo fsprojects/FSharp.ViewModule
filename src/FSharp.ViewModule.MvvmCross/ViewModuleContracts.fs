@@ -64,9 +64,6 @@ type FvxViewModel() as vm =
             with get() = this.OperationExecuting 
             and set v = this.OperationExecuting <- v
 
-        member this.SetErrors (validationResults : ValidationResult seq) =
-            ()
-
         member this.DependencyTracker = depTracker :> IDependencyTracker
 
 type ViewModuleTypeSpecification() =    
