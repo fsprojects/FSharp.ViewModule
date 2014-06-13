@@ -39,6 +39,10 @@ type internal NotifyingValueBackingField<'a> (propertyName, raisePropertyChanged
     let backingFieldValidationResultKey = "BackingFieldValidationKey"
     let propertyName = propertyName
     let mutable value = defaultValue
+    do
+        if (SynchronizationContext.Current <> null) then
+            SynchronizationContext.Current.Post((fun _ -> validationResultPublisher.SetResult(PropertyValidation(propertyName, backingFieldValidationResultKey, validate(value)))), null)
+
     override this.Value 
         with get() = value 
         and set(v) = 
@@ -68,6 +72,7 @@ type ViewModelPropertyFactory(dependencyTracker : IDependencyTracker, validation
     let addCommandDependencies cmd dependentProperties =
         let deps : Expr list = defaultArg dependentProperties []
         deps |> List.iter (fun prop -> dependencyTracker.AddCommandDependency(cmd, prop)) 
+        dependencyTracker.AddCommandDependency(cmd, "HasErrors")
 
     member this.Backing (prop : Expr, defaultValue : 'a, ?validate : 'a -> string option) =
         let validateFun = defaultArg validate (fun _ -> None)
@@ -117,7 +122,7 @@ type ViewModelBase() as self =
     let propertyChanged = new Event<_, _>()
     let depTracker = DependencyTracker(self.RaisePropertyChanged, propertyChanged.Publish)
     
-    // Used for error tracking (TODO)
+    // Used for error tracking
     let errorsChanged = new Event<EventHandler<DataErrorsChangedEventArgs>, DataErrorsChangedEventArgs>()
     let errorTracker = ValidationTracker(self.RaiseErrorChanged, propertyChanged.Publish, self.Validate)
     
@@ -135,6 +140,7 @@ type ViewModelBase() as self =
             
     member private this.RaiseErrorChanged(propertyName : string) =
         errorsChanged.Trigger(this, new DataErrorsChangedEventArgs(propertyName))
+        this.RaisePropertyChanged(<@ self.HasErrors @>)
 
     member this.RaisePropertyChanged(propertyName : string) =
         propertyChanged.Trigger(this, new PropertyChangedEventArgs(propertyName))
@@ -154,6 +160,8 @@ type ViewModelBase() as self =
     /// Handles management of dependencies for all computed properties 
     /// as well as ICommand dependencies
     member this.DependencyTracker = depTracker :> IDependencyTracker
+
+    member this.HasErrors with get() = errorTracker.HasErrors
 
     interface INotifyPropertyChanged with
         [<CLIEvent>]
