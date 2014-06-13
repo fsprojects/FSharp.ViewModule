@@ -49,6 +49,7 @@
     <Compile Include="FunCommand.fs" />
     <Compile Include="Commands.fs" />
     <Compile Include="MVVM.fs" />
+    <Compile Include="Validation.fs" />
     <Compile Include="IViewModuleTypeSpecification.fs" />
   </ItemGroup>
   <PropertyGroup>
