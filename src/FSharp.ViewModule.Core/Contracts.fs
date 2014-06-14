@@ -37,8 +37,8 @@ type IRaisePropertyChanged =
 
 /// Results of a validation for the member of a type or an entity.  errorKey is a string identifier unique per "error case"
 type ValidationResult =
-    | PropertyValidation of propertyName : string * errorKey : string * error : string option
-    | EntityValidation of errorKey : string * error : string option
+    | PropertyValidation of propertyName : string * errorKey : string * error : string list option
+    | EntityValidation of errorKey : string * error : string list option
 
 type IValidationTracker =
     abstract SetResult : ValidationResult -> unit

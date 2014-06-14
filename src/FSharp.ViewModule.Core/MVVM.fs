@@ -34,7 +34,7 @@ type public NotifyingValue<'a>() =
     /// Extracts the current value from the backing storage
     abstract member Value : 'a with get, set
 
-type internal NotifyingValueBackingField<'a> (propertyName, raisePropertyChanged : string -> unit, defaultValue : 'a, validationResultPublisher : IValidationTracker, validate : 'a -> string option) =
+type internal NotifyingValueBackingField<'a> (propertyName, raisePropertyChanged : string -> unit, defaultValue : 'a, validationResultPublisher : IValidationTracker, validate : 'a -> string list option) =
     inherit NotifyingValue<'a>()
     [<Literal>]
     let backingFieldValidationResultKey = "BackingFieldValidationKey"
@@ -75,11 +75,11 @@ type ViewModelPropertyFactory(dependencyTracker : IDependencyTracker, validation
         deps |> List.iter (fun prop -> dependencyTracker.AddCommandDependency(cmd, prop)) 
         dependencyTracker.AddCommandDependency(cmd, "HasErrors")
 
-    member this.Backing (prop : Expr, defaultValue : 'a, validate : ValidationStep<'a> -> ValidationStep<'a>) =
+    member this.Backing (prop : Expr, defaultValue : 'a, validate : ValidationResult<'a> -> ValidationResult<'a>) =
         let validateFun = Validators.validate(getPropertyNameFromExpression(prop)) >> validate >> result
         NotifyingValueBackingField<'a>(getPropertyNameFromExpression(prop), raisePropertyChanged, defaultValue, validationTracker, validateFun) :> NotifyingValue<'a>
 
-    member this.Backing (prop : Expr, defaultValue : 'a, ?validate : 'a -> string option) =
+    member this.Backing (prop : Expr, defaultValue : 'a, ?validate : 'a -> string list option) =
         let validateFun = defaultArg validate (fun _ -> None)
         NotifyingValueBackingField<'a>(getPropertyNameFromExpression(prop), raisePropertyChanged, defaultValue, validationTracker, validateFun) :> NotifyingValue<'a>
 

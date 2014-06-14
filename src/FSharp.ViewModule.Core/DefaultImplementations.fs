@@ -35,7 +35,7 @@ module internal ChangeNotifierUtils =
 type ValidationEntry = { propertyName : string ; keyName : string }
 
 type ValidationTracker(raiseErrorsChanged : string -> unit, propertyChanged : IObservable<PropertyChangedEventArgs>, entityValidator : string -> ValidationResult seq) =
-    let errorDictionary = Dictionary<ValidationEntry, string>()
+    let errorDictionary = Dictionary<ValidationEntry, string list>()
 
     let setErrorState key error =
         let changed = 
@@ -64,7 +64,7 @@ type ValidationTracker(raiseErrorsChanged : string -> unit, propertyChanged : IO
     member this.GetErrors propertyName =
         errorDictionary
         |> Seq.filter (fun kvp -> kvp.Key.propertyName = propertyName)
-        |> Seq.map (fun kvp -> kvp.Value)
+        |> Seq.collect (fun kvp -> kvp.Value)
 
     interface IValidationTracker with
         member this.SetResult (vr : ValidationResult) = 

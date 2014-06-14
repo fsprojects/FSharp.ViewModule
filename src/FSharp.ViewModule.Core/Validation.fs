@@ -18,63 +18,68 @@ namespace FSharp.ViewModule.Core.Validation
 
 open System
 
-type ValidationStep<'a> =
+type ValidationResult<'a> =
 | Valid of name : string * value : 'a
-| Invalid of name : string * error : string
+| Invalid of name : string * value : 'a * error : string list
 
 [<AutoOpen>]
 module Validators =
-    let createValidator predicate (error : string) (step : ValidationStep<'a>) =
-        match step with
-        | Invalid(name, err) -> Invalid(name, err)
-        | Valid(name, x) ->
-            if predicate x then Valid(name, x)
-            else Invalid(name, String.Format(error, name, x))
+    let createValidator predicate (error : string) (step : ValidationResult<'a>) =        
+        let success = 
+            match step with
+            | Invalid(_, value, _) -> predicate value
+            | Valid(_, value) -> predicate value
+        
+        match success, step with
+        | true, Valid(name, value) -> Valid(name, value)
+        | true,  Invalid(name, value, err) -> Invalid(name, value, err)
+        | false, Valid(name, value) -> Invalid(name, value, [String.Format(error, name, value)])
+        | false, Invalid(name, value, err) -> Invalid(name, value, err @ [String.Format(error, name, value)])
 
     let validate name value = Valid(name, value)
     
     // String validations
-    let notNullOrWhitespace (str : ValidationStep<string>) = 
+    let notNullOrWhitespace (str : ValidationResult<string>) = 
         let validation value = not(String.IsNullOrWhiteSpace(value))
-        createValidator validation "{0} cannot be null or empty" str 
+        createValidator validation "{0} cannot be null or empty." str 
 
-    let noSpaces (str : ValidationStep<string>) = 
+    let noSpaces (str : ValidationResult<string>) = 
         let validation (value : string) = not(value.Contains(" "))
-        createValidator validation "{0} cannot contain a space" str
+        createValidator validation "{0} cannot contain a space." str
 
-    let hasLength (length : int) (str : ValidationStep<string>) = 
+    let hasLength (length : int) (str : ValidationResult<string>) = 
         let validation (value : string) = value.Length = length
-        createValidator validation ("{0} must be " + length.ToString() + " characters long") str
+        createValidator validation ("{0} must be " + length.ToString() + " characters long.") str
 
-    let hasLengthAtLeast (length : int) (str : ValidationStep<string>) = 
+    let hasLengthAtLeast (length : int) (str : ValidationResult<string>) = 
         let validation (value : string) = value.Length >= length
-        createValidator validation ("{0} must be at least " + length.ToString() + " characters long") str
+        createValidator validation ("{0} must be at least " + length.ToString() + " characters long.") str
 
-    let hasLengthNoLongerThan (length : int) (str : ValidationStep<string>) = 
+    let hasLengthNoLongerThan (length : int) (str : ValidationResult<string>) = 
         let validation (value : string) = value.Length <= length
-        createValidator validation ("{0} must be no longer than " + length.ToString() + " characters long") str
+        createValidator validation ("{0} must be no longer than " + length.ToString() + " characters long.") str
 
     // Generic validations
     let notEqual value step = 
-        createValidator (fun v -> value <> v) "{0} cannot equal {1}" step
+        createValidator (fun v -> value <> v) "{0} cannot equal {1}." step
 
     let greater value step =
-        createValidator (fun v -> v > value) "{0} must be greater than {1}" step
+        createValidator (fun v -> v > value) "{0} must be greater than {1}." step
 
     let greaterOrEqual value step =
-        createValidator (fun v -> v >= value) "{0} must be greater than or equal to {1}" step
+        createValidator (fun v -> v >= value) "{0} must be greater than or equal to {1}." step
 
     let lessOrEqual value step =
-        createValidator (fun v -> v < value) "{0} must be less than or equal to {1}" step
+        createValidator (fun v -> v < value) "{0} must be less than or equal to {1}." step
     
-    let result (step : ValidationStep<'a>) : Option<string> =
+    let result (step : ValidationResult<'a>) : Option<string list> =
         match step with
-        | Valid(_, value) -> None
-        | Invalid(_, err) -> Some err
+        | Valid(_, _) -> None
+        | Invalid(_, _, err) -> Some err
 
     /// Produces a result of the validation, using a custom error message if an error occurred
-    let resultWithError customErrorMessage (step : ValidationStep<'a>) : Option<string> =
+    let resultWithError customErrorMessage (step : ValidationResult<'a>) : Option<string list> =
         match step with
         | Valid(_, value) -> None
-        | Invalid(_, err) -> Some customErrorMessage
+        | Invalid(_, _, _) -> Some [customErrorMessage]
 
