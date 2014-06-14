@@ -59,11 +59,11 @@
     <Compile Include="..\FSharp.ViewModule.Core\Commands.fs">
       <Link>Commands.fs</Link>
     </Compile>
-    <Compile Include="..\FSharp.ViewModule.Core\MVVM.fs">
-      <Link>MVVM.fs</Link>
-    </Compile>
     <Compile Include="..\FSharp.ViewModule.Core\Validation.fs">
       <Link>Validation.fs</Link>
+    </Compile>
+    <Compile Include="..\FSharp.ViewModule.Core\MVVM.fs">
+      <Link>MVVM.fs</Link>
     </Compile>
   </ItemGroup>
   <PropertyGroup>

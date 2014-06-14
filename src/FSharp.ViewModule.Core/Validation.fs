@@ -33,6 +33,7 @@ module Validators =
 
     let validate name value = Valid(name, value)
     
+    // String validations
     let notNullOrWhitespace (str : ValidationStep<string>) = 
         let validation value = not(String.IsNullOrWhiteSpace(value))
         createValidator str validation "{0} cannot be null or empty"
@@ -41,6 +42,19 @@ module Validators =
         let validation (value : string) = not(value.Contains(" "))
         createValidator str validation "{0} cannot contain a space"
 
+    let hasLength (length : int) (str : ValidationStep<string>) = 
+        let validation (value : string) = value.Length = length
+        createValidator str validation ("{0} must be " + length.ToString() + " characters long")
+
+    let hasLengthAtLeast (length : int) (str : ValidationStep<string>) = 
+        let validation (value : string) = value.Length >= length
+        createValidator str validation ("{0} must be at least " + length.ToString() + " characters long")
+
+    let hasLengthNoLongerThan (length : int) (str : ValidationStep<string>) = 
+        let validation (value : string) = value.Length <= length
+        createValidator str validation ("{0} must be no longer than " + length.ToString() + " characters long")
+
+    // Generic validations
     let notEqual value step = 
         createValidator step (fun v -> value <> v) "{0} cannot equal {1}"
 

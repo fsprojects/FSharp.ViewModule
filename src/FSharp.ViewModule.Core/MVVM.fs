@@ -26,6 +26,7 @@ open Microsoft.FSharp.Quotations
 open Microsoft.FSharp.Quotations.Patterns
 
 open FSharp.ViewModule.Core
+open FSharp.ViewModule.Core.Validation
 
 /// Encapsulation of a value which handles raising property changed automatically in a clean manner
 [<AbstractClass>]
@@ -73,6 +74,10 @@ type ViewModelPropertyFactory(dependencyTracker : IDependencyTracker, validation
         let deps : Expr list = defaultArg dependentProperties []
         deps |> List.iter (fun prop -> dependencyTracker.AddCommandDependency(cmd, prop)) 
         dependencyTracker.AddCommandDependency(cmd, "HasErrors")
+
+    member this.Backing (prop : Expr, defaultValue : 'a, validate : ValidationStep<'a> -> ValidationStep<'a>) =
+        let validateFun = Validators.validate(getPropertyNameFromExpression(prop)) >> validate >> result
+        NotifyingValueBackingField<'a>(getPropertyNameFromExpression(prop), raisePropertyChanged, defaultValue, validationTracker, validateFun) :> NotifyingValue<'a>
 
     member this.Backing (prop : Expr, defaultValue : 'a, ?validate : 'a -> string option) =
         let validateFun = defaultArg validate (fun _ -> None)
