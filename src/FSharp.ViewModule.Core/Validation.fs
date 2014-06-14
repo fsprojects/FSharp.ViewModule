@@ -17,6 +17,7 @@ limitations under the License.
 namespace FSharp.ViewModule.Core.Validation
 
 open System
+open System.Text.RegularExpressions
 
 type ValidationStep<'a> =
 | Valid of name : string * value : 'a
@@ -53,18 +54,40 @@ module Validators =
     let hasLengthNoLongerThan (length : int) (str : ValidationStep<string>) = 
         let validation (value : string) = value.Length <= length
         createValidator validation ("{0} must be no longer than " + length.ToString() + " characters long") str
+        
+    let private matchesPatternInternal (pattern : string) (errorMsg : string) (str : ValidationStep<string>) =
+        let validation (value : string) = Regex.IsMatch(value, pattern)
+        createValidator validation errorMsg str
+
+    let matchesPattern (pattern : string) =
+        matchesPatternInternal pattern ("{0} must match following pattern: " + pattern)
+
+    let isAlphanumeric =
+        matchesPatternInternal "[^a-zA-Z0-9]" "{0} must be alphanumeric"
+
+    let containsAtLeastOneDigit = 
+        matchesPatternInternal "[0-9]" "{0} must contain at least one digit"
+
+    let containsAtLeastOneUpperCaseCharacter =
+        matchesPatternInternal "[A-Z]" "{0} must contain at least one uppercase character"
+
+    let containsAtLeastOneLowerCaseCharacter =
+        matchesPatternInternal "[a-z]" "{0} must contain at least one lowercase character"
 
     // Generic validations
     let notEqual value step = 
         createValidator (fun v -> value <> v) "{0} cannot equal {1}" step
 
-    let greater value step =
+    let greaterThan value step =
         createValidator (fun v -> v > value) "{0} must be greater than {1}" step
 
-    let greaterOrEqual value step =
+    let greaterOrEqualTo value step =
         createValidator (fun v -> v >= value) "{0} must be greater than or equal to {1}" step
 
-    let lessOrEqual value step =
+    let lessThan value step =
+        createValidator (fun v -> v < value) "{0} must be less than {1}" step
+
+    let lessOrEqualTo value step =
         createValidator (fun v -> v < value) "{0} must be less than or equal to {1}" step
     
     let result (step : ValidationStep<'a>) : Option<string> =
