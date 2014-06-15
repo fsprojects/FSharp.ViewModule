@@ -93,6 +93,14 @@ module Validators =
     let isBetween lowerBound upperBound step =
         createValidator (fun v -> lowerBound <= v && v <= upperBound) ("{0} must be between " + lowerBound.ToString() + " and " + upperBound.ToString()) step
     
+    let ``in`` collection step =
+        let validation value = Option.isSome (Seq.tryFind ((=) value) collection)
+        createValidator validation ("{0} must be one of: " + String.Join(",", Seq.map (fun i -> i.ToString) collection)) step 
+
+    let ``notIn`` collection step =
+        let validation value = Option.isNone (Seq.tryFind ((=) value) collection)
+        createValidator validation ("{0} cannot be one of: " + String.Join(",", Seq.map (fun i -> i.ToString) collection)) step 
+
     let result (step : ValidationStep<'a>) : Option<string> =
         match step with
         | Valid(_, value) -> None
@@ -103,4 +111,3 @@ module Validators =
         match step with
         | Valid(_, value) -> None
         | Invalid(_, err) -> Some customErrorMessage
-
