@@ -95,11 +95,11 @@ module Validators =
     
     let ``in`` collection step =
         let validation value = Option.isSome (Seq.tryFind ((=) value) collection)
-        createValidator validation ("{0} must be one of: " + String.Join(",", Seq.map (fun i -> i.ToString) collection)) step 
+        createValidator validation ("{0} must be one of: " + String.Join(", ", Seq.map (fun i -> i.ToString()) collection)) step 
 
     let ``notIn`` collection step =
         let validation value = Option.isNone (Seq.tryFind ((=) value) collection)
-        createValidator validation ("{0} cannot be one of: " + String.Join(",", Seq.map (fun i -> i.ToString) collection)) step 
+        createValidator validation ("{0} cannot be one of: " + String.Join(", ", Seq.map (fun i -> i.ToString()) collection)) step 
 
     let result (step : ValidationStep<'a>) : Option<string> =
         match step with
