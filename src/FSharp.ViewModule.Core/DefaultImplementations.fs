@@ -64,7 +64,9 @@ type ValidationTracker(raiseErrorsChanged : string -> unit, propertyChanged : IO
     member this.GetErrors propertyName =
         errorDictionary
         |> Seq.filter (fun kvp -> kvp.Key.propertyName = propertyName)
-        |> Seq.collect (fun kvp -> kvp.Value)
+        |> Seq.collect (fun kvp -> Seq.ofList kvp.Value)
+        |> Array.ofSeq
+        |> Seq.cast<string>
 
     interface IValidationTracker with
         member this.SetResult (vr : ValidationResult) = 
