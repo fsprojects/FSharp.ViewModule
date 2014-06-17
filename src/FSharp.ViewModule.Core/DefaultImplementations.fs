@@ -20,23 +20,29 @@ open System
 open System.ComponentModel
 open System.Collections.Generic
 open System.Threading
-open System.Windows.Input
 
 open Microsoft.FSharp.Quotations
 open Microsoft.FSharp.Quotations.Patterns
 
-[<AutoOpen>]
-module internal ChangeNotifierUtils =    
-    let getPropertyNameFromExpression(expr : Expr) = 
-        match expr with
-        | PropertyGet(a, pi, list) -> pi.Name
-        | _ -> ""
+type internal ValidationKey =
+    | PropertyGeneratedValidation of ValidationResult
+    | EntityGeneratedValidation of ValidationResult
 
-type ValidationEntry = { propertyName : string ; keyName : string }
+type internal ValidationSource =
+    | FromProperty
+    | FromEntity
+type internal ValidationEntry = 
+    | PropertyEntry of propertyName : string * source : ValidationSource
+    | EntityEntry of source : ValidationSource
 
 type ValidationTracker(raiseErrorsChanged : string -> unit, propertyChanged : IObservable<PropertyChangedEventArgs>, entityValidator : string -> ValidationResult seq, propertiesToIgnore : Expr list) =
     let errorDictionary = Dictionary<ValidationEntry, string list>()
     let propertyNamesToIgnore = propertiesToIgnore |> List.map getPropertyNameFromExpression
+
+    let getPropertyName ve =
+        match ve with
+        | PropertyEntry(pn, _) -> pn
+        | EntityEntry(_) -> String.Empty
 
     let setErrorState key error =
         let changed = 
@@ -46,35 +52,77 @@ type ValidationTracker(raiseErrorsChanged : string -> unit, propertyChanged : IO
                 errorDictionary.[key] <- err
                 true
         if changed then 
-            raiseErrorsChanged(key.propertyName)
+            let prop = getPropertyName key
+            raiseErrorsChanged(prop)
 
-    let setResult vr =
+    let setResult (vk : ValidationKey) =
         let key, error = 
-            match vr with
-            | PropertyValidation(pn, ek, err) -> { propertyName = pn; keyName = ek}, err
-            | EntityValidation(ek, err) -> { propertyName = String.Empty; keyName = ek}, err
+            match vk with
+            | PropertyGeneratedValidation(PropertyValidation(pn, err)) -> PropertyEntry(pn, FromProperty), err
+            | EntityGeneratedValidation(PropertyValidation(pn, err)) -> PropertyEntry(pn, FromEntity), err 
+            | PropertyGeneratedValidation(EntityValidation(err)) -> EntityEntry(FromProperty), err
+            | EntityGeneratedValidation(EntityValidation(err)) -> EntityEntry(FromEntity), err
+
         setErrorState key error
 
     let validateProperties (pcea : PropertyChangedEventArgs) =        
         let prop = propertyNamesToIgnore |> List.tryFind ((=) pcea.PropertyName)
         if Option.isNone prop then
             entityValidator(pcea.PropertyName)      
-            |> Seq.iter (fun vr -> setResult vr)
-        
+            |> Seq.iter (fun vr -> setResult(EntityGeneratedValidation(vr)))
+
+    let extractEntityEntry ve value =
+        match ve, value with
+        | _, [] -> None
+        | PropertyEntry(_,_), _ -> None
+        | EntityEntry(_), v -> Some v
+
+    let extractPropertyEntry ve value =
+        match ve, value with
+        | _, [] -> None
+        | EntityEntry(_), _ -> None
+        | PropertyEntry(pn,_), v -> Some (pn, v)
+
     do
         propertyChanged.Subscribe(validateProperties) |> ignore
+        SynchronizationContext.Current.Post((fun _ -> validateProperties(PropertyChangedEventArgs(String.Empty))), null)
 
     member this.HasErrors with get() = errorDictionary.Count > 0
     member this.GetErrors propertyName =
         errorDictionary
-        |> Seq.filter (fun kvp -> kvp.Key.propertyName = propertyName)
+        |> Seq.filter (fun kvp -> getPropertyName(kvp.Key) = propertyName)
         |> Seq.collect (fun kvp -> Seq.ofList kvp.Value)
         |> Array.ofSeq
         |> Seq.cast<string>
 
+    member this.EntityErrors 
+        with get() =
+                errorDictionary
+                |> Seq.choose (fun kvp -> extractEntityEntry kvp.Key kvp.Value)
+                |> Seq.collect (fun i -> Seq.ofList(i))
+
+    member this.PropertyErrors 
+        with get() =
+            seq {
+                let dict = Dictionary<_,_>()
+                errorDictionary
+                |> Seq.choose (fun kvp -> extractPropertyEntry kvp.Key kvp.Value)
+                |> Seq.iter (fun pe -> 
+                    if not(dict.ContainsKey(fst pe)) then
+                        dict.[fst pe] <- snd pe
+                    else
+                        dict.[fst pe] <- dict.[fst pe] @ (snd pe)
+                    )
+
+                yield! dict |> Seq.map (fun kvp -> PropertyValidation(kvp.Key, kvp.Value))
+            }
+
     interface IValidationTracker with
-        member this.SetResult (vr : ValidationResult) = 
-            setResult vr
+        member this.SetPropertyValidationResult (vr : ValidationResult) = 
+            setResult(PropertyGeneratedValidation(vr))
+        
+        member this.SetEntityValidationResult (vr : ValidationResult) = 
+            setResult(EntityGeneratedValidation(vr))
         
         member this.ClearErrors() =
             errorDictionary.Clear()

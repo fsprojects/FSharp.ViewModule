@@ -2,8 +2,17 @@
 
 open System
 open System.IO
-open System.Windows
 
+open Microsoft.FSharp.Quotations
+open Microsoft.FSharp.Quotations.Patterns
+
+open System.Reflection
+
+[<assembly:AssemblyVersion("0.9.0.0")>]
+[<assembly:AssemblyFileVersion("0.9.0.0")>]
+do()
+
+[<AutoOpen>]
 module internal Utilities =
     let internal castAs<'T when 'T : null> (o:obj) = 
         match o with
@@ -15,5 +24,10 @@ module internal Utilities =
         | :? 'T as res -> Some res
         | _ -> None
     
+    let getPropertyNameFromExpression(expr : Expr) = 
+        match expr with
+        | PropertyGet(a, pi, list) -> pi.Name
+        | _ -> ""
+
 
         

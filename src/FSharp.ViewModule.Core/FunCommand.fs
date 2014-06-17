@@ -79,13 +79,13 @@ module internal Commands =
 
     let createSyncParamInternal<'a> (execute : ('a -> unit)) (canExecute : ('a -> bool)) =
         let ceWrapped o = 
-            let a = Utilities.downcastAndCreateOption(o)            
+            let a = downcastAndCreateOption(o)            
             match a with
             | None -> false
             | Some v -> canExecute(v)
 
         let func o = 
-            let a = Utilities.downcastAndCreateOption(o)
+            let a = downcastAndCreateOption(o)
             match a with
             | None -> a |> ignore
             | Some v -> execute(v)
@@ -103,7 +103,7 @@ module internal Commands =
 
     let createAsyncParamInternal<'a> (asyncWorkflow : (SynchronizationContext -> 'a -> Async<unit>)) (canExecute : ('a -> bool)) =
         let ceWrapped o = 
-            let a = Utilities.downcastAndCreateOption(o)            
+            let a = downcastAndCreateOption(o)            
             match a with
             | None -> false
             | Some v -> canExecute(v)
@@ -113,7 +113,7 @@ module internal Commands =
 
         // Build a handler that converts the untyped param to our typed param
         let func (ui : SynchronizationContext) (o : obj) = 
-            let a = Utilities.downcastAndCreateOption(o)
+            let a = downcastAndCreateOption(o)
             match a with
             | None -> emptyFunc ui o 
             | Some v -> asyncWorkflow ui v

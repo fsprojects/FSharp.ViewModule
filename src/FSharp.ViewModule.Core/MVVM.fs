@@ -36,20 +36,18 @@ type public NotifyingValue<'a>() =
 
 type internal NotifyingValueBackingField<'a> (propertyName, raisePropertyChanged : string -> unit, defaultValue : 'a, validationResultPublisher : IValidationTracker, validate : 'a -> string list) =
     inherit NotifyingValue<'a>()
-    [<Literal>]
-    let backingFieldValidationResultKey = "BackingFieldValidationKey"
-    let propertyName = propertyName
+    
     let mutable value = defaultValue
     do
         if (SynchronizationContext.Current <> null) then
-            SynchronizationContext.Current.Post((fun _ -> validationResultPublisher.SetResult(PropertyValidation(propertyName, backingFieldValidationResultKey, validate(value)))), null)
+            SynchronizationContext.Current.Post((fun _ -> validationResultPublisher.SetPropertyValidationResult(PropertyValidation(propertyName, validate(value)))), null)
 
     override this.Value 
         with get() = value 
         and set(v) = 
             if (not (EqualityComparer<'a>.Default.Equals(value, v))) then
                 value <- v                                
-                validationResultPublisher.SetResult(PropertyValidation(propertyName, backingFieldValidationResultKey, validate(value)))
+                validationResultPublisher.SetPropertyValidationResult(PropertyValidation(propertyName, validate(value)))
                 raisePropertyChanged propertyName                
 
 type internal NotifyingValueFuncs<'a> (propertyName, raisePropertyChanged : string -> unit, getter, setter) =
@@ -122,9 +120,12 @@ type ViewModelBase() as self =
     let depTracker = DependencyTracker(self.RaisePropertyChanged, propertyChanged.Publish)
     
     // Used for error tracking
+    let errorRelatedProperties = [ <@@ self.IsValid @@> ; <@@ self.EntityErrors @@> ; <@@ self.PropertyErrors @@> ]
+    let errorRelatedPropertyNames = errorRelatedProperties |> List.map getPropertyNameFromExpression
+
     let errorsChanged = new Event<EventHandler<DataErrorsChangedEventArgs>, DataErrorsChangedEventArgs>()
-    let errorTracker = ValidationTracker(self.RaiseErrorChanged, propertyChanged.Publish, self.Validate, [ <@@ self.IsValid @@> ])
-    
+    let errorTracker = ValidationTracker(self.RaiseErrorChanged, propertyChanged.Publish, self.Validate, errorRelatedProperties)
+
     let vmf = ViewModelPropertyFactory(depTracker :> IDependencyTracker, errorTracker :> IValidationTracker, self.RaisePropertyChanged)        
 
     // TODO: This should be set by commands to allow disabling of other commands by default
@@ -139,8 +140,9 @@ type ViewModelBase() as self =
             
     member private this.RaiseErrorChanged(propertyName : string) =
         errorsChanged.Trigger(this, new DataErrorsChangedEventArgs(propertyName))
-        if (propertyName <> getPropertyNameFromExpression(<@ self.IsValid @>)) then
-            this.RaisePropertyChanged(<@ self.IsValid @>)
+        if (Option.isNone(errorRelatedPropertyNames |> List.tryFind ((=) propertyName))) then
+            errorRelatedPropertyNames
+            |> List.iter (fun p -> this.RaisePropertyChanged(p))
 
     member this.RaisePropertyChanged(propertyName : string) =
         propertyChanged.Trigger(this, new PropertyChangedEventArgs(propertyName))
@@ -157,6 +159,9 @@ type ViewModelBase() as self =
     member this.DependencyTracker = depTracker :> IDependencyTracker
 
     member this.IsValid with get() = not errorTracker.HasErrors
+
+    member this.EntityErrors with get() = errorTracker.EntityErrors        
+    member this.PropertyErrors with get() = errorTracker.PropertyErrors        
 
     interface INotifyPropertyChanged with
         [<CLIEvent>]
