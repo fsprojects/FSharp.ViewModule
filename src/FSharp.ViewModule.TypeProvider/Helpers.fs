@@ -26,7 +26,7 @@ open Microsoft.FSharp.Reflection
 open ProviderImplementation
 open ProviderImplementation.ProvidedTypes
 
-open FSharp.ViewModule.Core
+open FSharp.ViewModule
 
 /// Helps use a Type safely.
 [<RequireQualifiedAccess>]

@@ -21,7 +21,7 @@ open System.ComponentModel
 
 open Cirrious.MvvmCross.ViewModels
 
-open FSharp.ViewModule.Core
+open FSharp.ViewModule
 
 /// MvvmCross based command implementation
 type FvxCommand(execute : obj -> unit, canExecute : obj -> bool) =

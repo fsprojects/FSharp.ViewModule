@@ -31,7 +31,7 @@ open Microsoft.FSharp.Quotations.ExprShape
 open ProviderImplementation
 open ProviderImplementation.ProvidedTypes
 
-open FSharp.ViewModule.Core
+open FSharp.ViewModule
 open FSharp.ViewModule.Helpers
 
 /// Contains the association of model and module types.

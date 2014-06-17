@@ -47,7 +47,6 @@
     <Compile Include="Contracts.fs" />
     <Compile Include="DefaultImplementations.fs" />
     <Compile Include="FunCommand.fs" />
-    <Compile Include="Commands.fs" />
     <Compile Include="Validation.fs" />
     <Compile Include="MVVM.fs" />
     <Compile Include="IViewModuleTypeSpecification.fs" />

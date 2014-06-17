@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 *)
 
-namespace FSharp.ViewModule.Core
+namespace FSharp.ViewModule
 
 open System.ComponentModel
 open System.Windows.Input
@@ -37,8 +37,8 @@ type IRaisePropertyChanged =
 
 /// Results of a validation for the member of a type or an entity.  errorKey is a string identifier unique per "error case"
 type ValidationResult =
-    | PropertyValidation of propertyName : string * errorKey : string * error : string option
-    | EntityValidation of errorKey : string * error : string option
+    | PropertyValidation of propertyName : string * errorKey : string * error : string list
+    | EntityValidation of errorKey : string * error : string list
 
 type IValidationTracker =
     abstract SetResult : ValidationResult -> unit

@@ -1,4 +1,4 @@
-﻿namespace FSharp.ViewModule.Core
+﻿namespace FSharp.ViewModule
 
 open System
 open System.IO

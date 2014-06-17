@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 *)
 
-namespace FSharp.ViewModule.Core
+namespace FSharp.ViewModule
 
 open System
 open System.ComponentModel
@@ -34,17 +34,19 @@ module internal ChangeNotifierUtils =
 
 type ValidationEntry = { propertyName : string ; keyName : string }
 
-type ValidationTracker(raiseErrorsChanged : string -> unit, propertyChanged : IObservable<PropertyChangedEventArgs>, entityValidator : string -> ValidationResult seq) =
-    let errorDictionary = Dictionary<ValidationEntry, string>()
+type ValidationTracker(raiseErrorsChanged : string -> unit, propertyChanged : IObservable<PropertyChangedEventArgs>, entityValidator : string -> ValidationResult seq, propertiesToIgnore : Expr list) =
+    let errorDictionary = Dictionary<ValidationEntry, string list>()
+    let propertyNamesToIgnore = propertiesToIgnore |> List.map getPropertyNameFromExpression
 
     let setErrorState key error =
         let changed = 
             match error with
-            | None -> errorDictionary.Remove(key)
-            | Some err ->
+            | [] -> errorDictionary.Remove(key)
+            | err ->
                 errorDictionary.[key] <- err
                 true
-        if changed then raiseErrorsChanged(key.propertyName)
+        if changed then 
+            raiseErrorsChanged(key.propertyName)
 
     let setResult vr =
         let key, error = 
@@ -54,9 +56,11 @@ type ValidationTracker(raiseErrorsChanged : string -> unit, propertyChanged : IO
         setErrorState key error
 
     let validateProperties (pcea : PropertyChangedEventArgs) =        
-        entityValidator(pcea.PropertyName)      
-        |> Seq.iter (fun vr -> setResult vr)
-
+        let prop = propertyNamesToIgnore |> List.tryFind ((=) pcea.PropertyName)
+        if Option.isNone prop then
+            entityValidator(pcea.PropertyName)      
+            |> Seq.iter (fun vr -> setResult vr)
+        
     do
         propertyChanged.Subscribe(validateProperties) |> ignore
 
@@ -64,7 +68,9 @@ type ValidationTracker(raiseErrorsChanged : string -> unit, propertyChanged : IO
     member this.GetErrors propertyName =
         errorDictionary
         |> Seq.filter (fun kvp -> kvp.Key.propertyName = propertyName)
-        |> Seq.map (fun kvp -> kvp.Value)
+        |> Seq.collect (fun kvp -> Seq.ofList kvp.Value)
+        |> Array.ofSeq
+        |> Seq.cast<string>
 
     interface IValidationTracker with
         member this.SetResult (vr : ValidationResult) = 

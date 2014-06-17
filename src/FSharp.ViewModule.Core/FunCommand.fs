@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 *)
 
-namespace FSharp.ViewModule.Core.ViewModel
+namespace FSharp.ViewModule
 
 open System
 open System.ComponentModel
@@ -25,7 +25,7 @@ open System.Windows.Input
 open Microsoft.FSharp.Quotations
 open Microsoft.FSharp.Quotations.Patterns
 
-open FSharp.ViewModule.Core
+open FSharp.ViewModule
 
 // Default command implementation for our MVVM base classes
 type FunCommand (execute : obj -> unit, canExecute) =

@@ -56,9 +56,6 @@
     <Compile Include="..\FSharp.ViewModule.Core\FunCommand.fs">
       <Link>FunCommand.fs</Link>
     </Compile>
-    <Compile Include="..\FSharp.ViewModule.Core\Commands.fs">
-      <Link>Commands.fs</Link>
-    </Compile>
     <Compile Include="..\FSharp.ViewModule.Core\Validation.fs">
       <Link>Validation.fs</Link>
     </Compile>

@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 *)
 
-namespace FSharp.ViewModule.Core.ViewModel
+namespace FSharp.ViewModule
 
 open System
 open System.ComponentModel
@@ -25,8 +25,8 @@ open System.Windows.Input
 open Microsoft.FSharp.Quotations
 open Microsoft.FSharp.Quotations.Patterns
 
-open FSharp.ViewModule.Core
-open FSharp.ViewModule.Core.Validation
+open FSharp.ViewModule
+open FSharp.ViewModule.Validation
 
 /// Encapsulation of a value which handles raising property changed automatically in a clean manner
 [<AbstractClass>]
@@ -34,7 +34,7 @@ type public NotifyingValue<'a>() =
     /// Extracts the current value from the backing storage
     abstract member Value : 'a with get, set
 
-type internal NotifyingValueBackingField<'a> (propertyName, raisePropertyChanged : string -> unit, defaultValue : 'a, validationResultPublisher : IValidationTracker, validate : 'a -> string option) =
+type internal NotifyingValueBackingField<'a> (propertyName, raisePropertyChanged : string -> unit, defaultValue : 'a, validationResultPublisher : IValidationTracker, validate : 'a -> string list) =
     inherit NotifyingValue<'a>()
     [<Literal>]
     let backingFieldValidationResultKey = "BackingFieldValidationKey"
@@ -62,12 +62,6 @@ type internal NotifyingValueFuncs<'a> (propertyName, raisePropertyChanged : stri
                 setter v
                 raisePropertyChanged propertyName
 
-[<AutoOpen>]
-module ChangeNotifierUtils =    
-    let internal getPropertyNameFromExpression(expr : Expr) = 
-        match expr with
-        | PropertyGet(a, pi, list) -> pi.Name
-        | _ -> ""
 
 type ViewModelPropertyFactory(dependencyTracker : IDependencyTracker, validationTracker: IValidationTracker, raisePropertyChanged : string -> unit) =     
     let addCommandDependencies cmd dependentProperties =
@@ -75,12 +69,12 @@ type ViewModelPropertyFactory(dependencyTracker : IDependencyTracker, validation
         deps |> List.iter (fun prop -> dependencyTracker.AddCommandDependency(cmd, prop)) 
         dependencyTracker.AddCommandDependency(cmd, "HasErrors")
 
-    member this.Backing (prop : Expr, defaultValue : 'a, validate : ValidationStep<'a> -> ValidationStep<'a>) =
+    member this.Backing (prop : Expr, defaultValue : 'a, validate : ValidationResult<'a> -> ValidationResult<'a>) =
         let validateFun = Validators.validate(getPropertyNameFromExpression(prop)) >> validate >> result
         NotifyingValueBackingField<'a>(getPropertyNameFromExpression(prop), raisePropertyChanged, defaultValue, validationTracker, validateFun) :> NotifyingValue<'a>
 
-    member this.Backing (prop : Expr, defaultValue : 'a, ?validate : 'a -> string option) =
-        let validateFun = defaultArg validate (fun _ -> None)
+    member this.Backing (prop : Expr, defaultValue : 'a, ?validate : 'a -> string list) =
+        let validateFun = defaultArg validate (fun _ -> List.empty)
         NotifyingValueBackingField<'a>(getPropertyNameFromExpression(prop), raisePropertyChanged, defaultValue, validationTracker, validateFun) :> NotifyingValue<'a>
 
     member this.FromFuncs (prop : Expr, getter, setter) =
@@ -129,7 +123,7 @@ type ViewModelBase() as self =
     
     // Used for error tracking
     let errorsChanged = new Event<EventHandler<DataErrorsChangedEventArgs>, DataErrorsChangedEventArgs>()
-    let errorTracker = ValidationTracker(self.RaiseErrorChanged, propertyChanged.Publish, self.Validate)
+    let errorTracker = ValidationTracker(self.RaiseErrorChanged, propertyChanged.Publish, self.Validate, [ <@@ self.IsValid @@> ])
     
     let vmf = ViewModelPropertyFactory(depTracker :> IDependencyTracker, errorTracker :> IValidationTracker, self.RaisePropertyChanged)        
 
@@ -145,7 +139,8 @@ type ViewModelBase() as self =
             
     member private this.RaiseErrorChanged(propertyName : string) =
         errorsChanged.Trigger(this, new DataErrorsChangedEventArgs(propertyName))
-        this.RaisePropertyChanged(<@ self.HasErrors @>)
+        if (propertyName <> getPropertyNameFromExpression(<@ self.IsValid @>)) then
+            this.RaisePropertyChanged(<@ self.IsValid @>)
 
     member this.RaisePropertyChanged(propertyName : string) =
         propertyChanged.Trigger(this, new PropertyChangedEventArgs(propertyName))
@@ -157,16 +152,11 @@ type ViewModelBase() as self =
     /// Value used to notify view that an asynchronous operation is executing
     member this.OperationExecuting with get() = operationExecuting.Value and set(value) = operationExecuting.Value <- value
 
-    /// Setup all errors for validation
-    member this.SetErrors (result : ValidationResult seq) =
-        // TODO: Do something here
-        result |> ignore
-
     /// Handles management of dependencies for all computed properties 
     /// as well as ICommand dependencies
     member this.DependencyTracker = depTracker :> IDependencyTracker
 
-    member this.HasErrors with get() = errorTracker.HasErrors
+    member this.IsValid with get() = not errorTracker.HasErrors
 
     interface INotifyPropertyChanged with
         [<CLIEvent>]
