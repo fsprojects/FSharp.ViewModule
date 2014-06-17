@@ -34,17 +34,19 @@ module internal ChangeNotifierUtils =
 
 type ValidationEntry = { propertyName : string ; keyName : string }
 
-type ValidationTracker(raiseErrorsChanged : string -> unit, propertyChanged : IObservable<PropertyChangedEventArgs>, entityValidator : string -> ValidationResult seq) =
+type ValidationTracker(raiseErrorsChanged : string -> unit, propertyChanged : IObservable<PropertyChangedEventArgs>, entityValidator : string -> ValidationResult seq, propertiesToIgnore : Expr list) =
     let errorDictionary = Dictionary<ValidationEntry, string list>()
+    let propertyNamesToIgnore = propertiesToIgnore |> List.map getPropertyNameFromExpression
 
     let setErrorState key error =
         let changed = 
             match error with
-            | None -> errorDictionary.Remove(key)
-            | Some err ->
+            | [] -> errorDictionary.Remove(key)
+            | err ->
                 errorDictionary.[key] <- err
                 true
-        if changed then raiseErrorsChanged(key.propertyName)
+        if changed then 
+            raiseErrorsChanged(key.propertyName)
 
     let setResult vr =
         let key, error = 
@@ -54,8 +56,10 @@ type ValidationTracker(raiseErrorsChanged : string -> unit, propertyChanged : IO
         setErrorState key error
 
     let validateProperties (pcea : PropertyChangedEventArgs) =        
-        entityValidator(pcea.PropertyName)      
-        |> Seq.iter (fun vr -> setResult vr)
+        let prop = propertyNamesToIgnore |> List.tryFind ((=) pcea.PropertyName)
+        if Option.isNone prop then
+            entityValidator(pcea.PropertyName)      
+            |> Seq.iter (fun vr -> setResult vr)
 
     do
         propertyChanged.Subscribe(validateProperties) |> ignore

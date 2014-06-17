@@ -34,7 +34,7 @@ type public NotifyingValue<'a>() =
     /// Extracts the current value from the backing storage
     abstract member Value : 'a with get, set
 
-type internal NotifyingValueBackingField<'a> (propertyName, raisePropertyChanged : string -> unit, defaultValue : 'a, validationResultPublisher : IValidationTracker, validate : 'a -> string list option) =
+type internal NotifyingValueBackingField<'a> (propertyName, raisePropertyChanged : string -> unit, defaultValue : 'a, validationResultPublisher : IValidationTracker, validate : 'a -> string list) =
     inherit NotifyingValue<'a>()
     [<Literal>]
     let backingFieldValidationResultKey = "BackingFieldValidationKey"
@@ -79,8 +79,8 @@ type ViewModelPropertyFactory(dependencyTracker : IDependencyTracker, validation
         let validateFun = Validators.validate(getPropertyNameFromExpression(prop)) >> validate >> result
         NotifyingValueBackingField<'a>(getPropertyNameFromExpression(prop), raisePropertyChanged, defaultValue, validationTracker, validateFun) :> NotifyingValue<'a>
 
-    member this.Backing (prop : Expr, defaultValue : 'a, ?validate : 'a -> string list option) =
-        let validateFun = defaultArg validate (fun _ -> None)
+    member this.Backing (prop : Expr, defaultValue : 'a, ?validate : 'a -> string list) =
+        let validateFun = defaultArg validate (fun _ -> List.empty)
         NotifyingValueBackingField<'a>(getPropertyNameFromExpression(prop), raisePropertyChanged, defaultValue, validationTracker, validateFun) :> NotifyingValue<'a>
 
     member this.FromFuncs (prop : Expr, getter, setter) =
@@ -129,7 +129,7 @@ type ViewModelBase() as self =
     
     // Used for error tracking
     let errorsChanged = new Event<EventHandler<DataErrorsChangedEventArgs>, DataErrorsChangedEventArgs>()
-    let errorTracker = ValidationTracker(self.RaiseErrorChanged, propertyChanged.Publish, self.Validate)
+    let errorTracker = ValidationTracker(self.RaiseErrorChanged, propertyChanged.Publish, self.Validate, [ <@@ self.IsValid @@> ])
     
     let vmf = ViewModelPropertyFactory(depTracker :> IDependencyTracker, errorTracker :> IValidationTracker, self.RaisePropertyChanged)        
 
@@ -145,7 +145,8 @@ type ViewModelBase() as self =
             
     member private this.RaiseErrorChanged(propertyName : string) =
         errorsChanged.Trigger(this, new DataErrorsChangedEventArgs(propertyName))
-        this.RaisePropertyChanged(<@ self.HasErrors @>)
+        if (propertyName <> getPropertyNameFromExpression(<@ self.IsValid @>)) then
+            this.RaisePropertyChanged(<@ self.IsValid @>)
 
     member this.RaisePropertyChanged(propertyName : string) =
         propertyChanged.Trigger(this, new PropertyChangedEventArgs(propertyName))
@@ -157,16 +158,11 @@ type ViewModelBase() as self =
     /// Value used to notify view that an asynchronous operation is executing
     member this.OperationExecuting with get() = operationExecuting.Value and set(value) = operationExecuting.Value <- value
 
-    /// Setup all errors for validation
-    member this.SetErrors (result : ValidationResult seq) =
-        // TODO: Do something here
-        result |> ignore
-
     /// Handles management of dependencies for all computed properties 
     /// as well as ICommand dependencies
     member this.DependencyTracker = depTracker :> IDependencyTracker
 
-    member this.HasErrors with get() = errorTracker.HasErrors
+    member this.IsValid with get() = not errorTracker.HasErrors
 
     interface INotifyPropertyChanged with
         [<CLIEvent>]

@@ -20,23 +20,38 @@ open System
 
 type ValidationResult<'a> =
 | Valid of name : string * value : 'a
-| Invalid of name : string * value : 'a * error : string list
+| InvalidCollecting of name : string * value : 'a * error : string list
+| InvalidDone of name : string * value : 'a * error : string list
 
 [<AutoOpen>]
 module Validators =
-    let createValidator predicate (error : string) (step : ValidationResult<'a>) =        
+    let private createValidator predicate (error : string) (step : ValidationResult<'a>) =        
         let success = 
-            match step with
-            | Invalid(_, value, _) -> predicate value
+            match step with            
+            | InvalidDone(_, _, _) -> false // Short circuit
+            | InvalidCollecting(_, value, _) -> predicate value
             | Valid(_, value) -> predicate value
         
         match success, step with
+        | _, InvalidDone(_, _, _) -> step // If our errors are fixed coming in, just pass through
         | true, Valid(name, value) -> Valid(name, value)
-        | true,  Invalid(name, value, err) -> Invalid(name, value, err)
-        | false, Valid(name, value) -> Invalid(name, value, [String.Format(error, name, value)])
-        | false, Invalid(name, value, err) -> Invalid(name, value, err @ [String.Format(error, name, value)])
+        | true,  InvalidCollecting(name, value, err) -> InvalidCollecting(name, value, err)
+        | false, Valid(name, value) -> InvalidCollecting(name, value, [String.Format(error, name, value)])
+        | false, InvalidCollecting(name, value, err) -> InvalidCollecting(name, value, err @ [String.Format(error, name, value)])
 
-    let validate name value = Valid(name, value)
+    /// Create a custom validator using a predicate ('a -> bool) and an error message on failure. The error message can use {0} for a placeholder for the property name.
+    let custom predicate (error : string) (step : ValidationResult<'a>) = createValidator
+
+    /// Fix the current state of errors, bypassing all future validation checks if we're in an error state
+    let fixErrors (step : ValidationResult<'a>) =
+        match step with
+        | InvalidCollecting(name, value, errors) -> 
+            // Switch us from invalid to invalid with errors fixed
+            InvalidDone(name, value, errors)
+        | _ -> step
+
+    /// Begin a validation chain for a given property name
+    let validate propertyName value = Valid(propertyName, value)
     
     // String validations
     let notNullOrWhitespace (str : ValidationResult<string>) = 
@@ -72,14 +87,18 @@ module Validators =
     let lessOrEqual value step =
         createValidator (fun v -> v < value) "{0} must be less than or equal to {1}." step
     
-    let result (step : ValidationResult<'a>) : Option<string list> =
+    let result (step : ValidationResult<'a>) : string list =
         match step with
-        | Valid(_, _) -> None
-        | Invalid(_, _, err) -> Some err
+        | Valid(_, _) -> []
+        | InvalidCollecting(_, _, err) -> err
+        | InvalidDone(_, _, err) -> err
 
     /// Produces a result of the validation, using a custom error message if an error occurred
-    let resultWithError customErrorMessage (step : ValidationResult<'a>) : Option<string list> =
+    let resultWithError customErrorMessage (step : ValidationResult<'a>) : string list =
         match step with
-        | Valid(_, value) -> None
-        | Invalid(_, _, _) -> Some [customErrorMessage]
+        | Valid(_, value) -> []
+        | _ -> [customErrorMessage]
+
+    let evaluate value (workflow : 'a -> string list) =
+        workflow(value)
 
