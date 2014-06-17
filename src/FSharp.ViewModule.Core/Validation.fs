@@ -19,43 +19,63 @@ namespace FSharp.ViewModule.Core.Validation
 open System
 open System.Text.RegularExpressions
 
-type ValidationStep<'a> =
+type ValidationResult<'a> =
 | Valid of name : string * value : 'a
-| Invalid of name : string * error : string
+| InvalidCollecting of name : string * value : 'a * error : string list
+| InvalidDone of name : string * value : 'a * error : string list
 
 [<AutoOpen>]
 module Validators =
-    let createValidator predicate (error : string) (step : ValidationStep<'a>) =
-        match step with
-        | Invalid(name, err) -> Invalid(name, err)
-        | Valid(name, x) ->
-            if predicate x then Valid(name, x)
-            else Invalid(name, String.Format(error, name, x))
+    let private createValidator predicate (error : string) (step : ValidationResult<'a>) =        
+        let success = 
+            match step with            
+            | InvalidDone(_, _, _) -> false // Short circuit
+            | InvalidCollecting(_, value, _) -> predicate value
+            | Valid(_, value) -> predicate value
+        
+        match success, step with
+        | _, InvalidDone(_, _, _) -> step // If our errors are fixed coming in, just pass through
+        | true, Valid(name, value) -> Valid(name, value)
+        | true,  InvalidCollecting(name, value, err) -> InvalidCollecting(name, value, err)
+        | false, Valid(name, value) -> InvalidCollecting(name, value, [String.Format(error, name, value)])
+        | false, InvalidCollecting(name, value, err) -> InvalidCollecting(name, value, err @ [String.Format(error, name, value)])
 
-    let validate name value = Valid(name, value)
+    /// Create a custom validator using a predicate ('a -> bool) and an error message on failure. The error message can use {0} for a placeholder for the property name.
+    let custom predicate (error : string) (step : ValidationResult<'a>) = createValidator
+
+    /// Fix the current state of errors, bypassing all future validation checks if we're in an error state
+    let fixErrors (step : ValidationResult<'a>) =
+        match step with
+        | InvalidCollecting(name, value, errors) -> 
+            // Switch us from invalid to invalid with errors fixed
+            InvalidDone(name, value, errors)
+        | _ -> step
+
+    /// Begin a validation chain for a given property name
+    let validate propertyName value = Valid(propertyName, value)
     
     // String validations
-    let notNullOrWhitespace (str : ValidationStep<string>) = 
+    let notNullOrWhitespace (str : ValidationResult<string>) = 
         let validation value = not(String.IsNullOrWhiteSpace(value))
-        createValidator validation "{0} cannot be null or empty" str 
+        createValidator validation "{0} cannot be null or empty." str 
 
-    let noSpaces (str : ValidationStep<string>) = 
+    let noSpaces (str : ValidationResult<string>) = 
         let validation (value : string) = not(value.Contains(" "))
-        createValidator validation "{0} cannot contain a space" str
+        createValidator validation "{0} cannot contain a space." str
 
-    let hasLength (length : int) (str : ValidationStep<string>) = 
+    let hasLength (length : int) (str : ValidationResult<string>) = 
         let validation (value : string) = value.Length = length
-        createValidator validation ("{0} must be " + length.ToString() + " characters long") str
+        createValidator validation ("{0} must be " + length.ToString() + " characters long.") str
 
-    let hasLengthAtLeast (length : int) (str : ValidationStep<string>) = 
+    let hasLengthAtLeast (length : int) (str : ValidationResult<string>) = 
         let validation (value : string) = value.Length >= length
-        createValidator validation ("{0} must be at least " + length.ToString() + " characters long") str
+        createValidator validation ("{0} must be at least " + length.ToString() + " characters long.") str
 
-    let hasLengthNoLongerThan (length : int) (str : ValidationStep<string>) = 
+    let hasLengthNoLongerThan (length : int) (str : ValidationResult<string>) = 
         let validation (value : string) = value.Length <= length
         createValidator validation ("{0} must be no longer than " + length.ToString() + " characters long") str
         
-    let private matchesPatternInternal (pattern : string) (errorMsg : string) (str : ValidationStep<string>) =
+    let private matchesPatternInternal (pattern : string) (errorMsg : string) (str : ValidationResult<string>) =
         let validation (value : string) = Regex.IsMatch(value, pattern)
         createValidator validation errorMsg str
 
@@ -101,13 +121,17 @@ module Validators =
         let validation value = Option.isNone (Seq.tryFind ((=) value) collection)
         createValidator validation ("{0} cannot be one of: " + String.Join(", ", Seq.map (fun i -> i.ToString()) collection)) step 
 
-    let result (step : ValidationStep<'a>) : Option<string> =
+    let result (step : ValidationResult<'a>) : string list =
         match step with
-        | Valid(_, value) -> None
-        | Invalid(_, err) -> Some err
+        | Valid(_, _) -> []
+        | InvalidCollecting(_, _, err) -> err
+        | InvalidDone(_, _, err) -> err
 
     /// Produces a result of the validation, using a custom error message if an error occurred
-    let resultWithError customErrorMessage (step : ValidationStep<'a>) : Option<string> =
+    let resultWithError customErrorMessage (step : ValidationResult<'a>) : string list =
         match step with
-        | Valid(_, value) -> None
-        | Invalid(_, err) -> Some customErrorMessage
+        | Valid(_, value) -> []
+        | _ -> [customErrorMessage]
+
+    let evaluate value (workflow : 'a -> string list) =
+        workflow(value)
