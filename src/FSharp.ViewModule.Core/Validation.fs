@@ -17,6 +17,7 @@ limitations under the License.
 namespace FSharp.ViewModule.Core.Validation
 
 open System
+open System.Text.RegularExpressions
 
 type ValidationResult<'a> =
 | Valid of name : string * value : 'a
@@ -72,21 +73,54 @@ module Validators =
 
     let hasLengthNoLongerThan (length : int) (str : ValidationResult<string>) = 
         let validation (value : string) = value.Length <= length
-        createValidator validation ("{0} must be no longer than " + length.ToString() + " characters long.") str
+        createValidator validation ("{0} must be no longer than " + length.ToString() + " characters long") str
+        
+    let private matchesPatternInternal (pattern : string) (errorMsg : string) (str : ValidationResult<string>) =
+        let validation (value : string) = Regex.IsMatch(value, pattern)
+        createValidator validation errorMsg str
+
+    let matchesPattern (pattern : string) str =
+        matchesPatternInternal pattern ("{0} must match following pattern: " + pattern) str
+
+    let isAlphanumeric str =
+        matchesPatternInternal "[^a-zA-Z0-9]" "{0} must be alphanumeric" str
+
+    let containsAtLeastOneDigit str = 
+        matchesPatternInternal "[0-9]" "{0} must contain at least one digit" str
+
+    let containsAtLeastOneUpperCaseCharacter str =
+        matchesPatternInternal "[A-Z]" "{0} must contain at least one uppercase character" str
+
+    let containsAtLeastOneLowerCaseCharacter str =
+        matchesPatternInternal "[a-z]" "{0} must contain at least one lowercase character" str
 
     // Generic validations
     let notEqual value step = 
-        createValidator (fun v -> value <> v) "{0} cannot equal {1}." step
+        createValidator (fun v -> value <> v) ("{0} cannot equal " + value.ToString()) step
 
-    let greater value step =
-        createValidator (fun v -> v > value) "{0} must be greater than {1}." step
+    let greaterThan value step =
+        createValidator (fun v -> v > value) ("{0} must be greater than " + value.ToString()) step
 
-    let greaterOrEqual value step =
-        createValidator (fun v -> v >= value) "{0} must be greater than or equal to {1}." step
+    let greaterOrEqualTo value step =
+        createValidator (fun v -> v >= value) ("{0} must be greater than or equal to " + value.ToString()) step
 
-    let lessOrEqual value step =
-        createValidator (fun v -> v < value) "{0} must be less than or equal to {1}." step
+    let lessThan value step =
+        createValidator (fun v -> v < value) ("{0} must be less than " + value.ToString()) step
+
+    let lessOrEqualTo value step =
+        createValidator (fun v -> v < value) ("{0} must be less than or equal to " + value.ToString()) step
+
+    let isBetween lowerBound upperBound step =
+        createValidator (fun v -> lowerBound <= v && v <= upperBound) ("{0} must be between " + lowerBound.ToString() + " and " + upperBound.ToString()) step
     
+    let containedWithin collection step =
+        let validation value = Option.isSome (Seq.tryFind ((=) value) collection)
+        createValidator validation ("{0} must be one of: " + String.Join(", ", Seq.map (fun i -> i.ToString()) collection)) step 
+
+    let notContainedWithin collection step =
+        let validation value = Option.isNone (Seq.tryFind ((=) value) collection)
+        createValidator validation ("{0} cannot be one of: " + String.Join(", ", Seq.map (fun i -> i.ToString()) collection)) step 
+
     let result (step : ValidationResult<'a>) : string list =
         match step with
         | Valid(_, _) -> []
@@ -101,4 +135,3 @@ module Validators =
 
     let evaluate value (workflow : 'a -> string list) =
         workflow(value)
-
