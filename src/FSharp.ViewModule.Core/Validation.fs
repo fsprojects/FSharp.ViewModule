@@ -26,22 +26,20 @@ type ValidationResult<'a> =
 
 [<AutoOpen>]
 module Validators =
-    let private createValidator predicate (error : string) (step : ValidationResult<'a>) =        
+    /// Create a custom validator using a predicate ('a -> bool) and an error message on failure. The error message can use {0} for a placeholder for the property name.
+    let custom (validator : 'a -> string option) (step : ValidationResult<'a>) =        
         let success = 
             match step with            
-            | InvalidDone(_, _, _) -> false // Short circuit
-            | InvalidCollecting(_, value, _) -> predicate value
-            | Valid(_, value) -> predicate value
+            | InvalidDone(_, _, _) -> None // Short circuit
+            | InvalidCollecting(_, value, _) -> validator value
+            | Valid(_, value) -> validator value
         
         match success, step with
         | _, InvalidDone(_, _, _) -> step // If our errors are fixed coming in, just pass through
-        | true, Valid(name, value) -> Valid(name, value)
-        | true,  InvalidCollecting(name, value, err) -> InvalidCollecting(name, value, err)
-        | false, Valid(name, value) -> InvalidCollecting(name, value, [String.Format(error, name, value)])
-        | false, InvalidCollecting(name, value, err) -> InvalidCollecting(name, value, err @ [String.Format(error, name, value)])
-
-    /// Create a custom validator using a predicate ('a -> bool) and an error message on failure. The error message can use {0} for a placeholder for the property name.
-    let custom predicate (error : string) (step : ValidationResult<'a>) = createValidator
+        | None, Valid(name, value) -> Valid(name, value)
+        | None,  InvalidCollecting(name, value, err) -> InvalidCollecting(name, value, err)
+        | Some error, Valid(name, value) -> InvalidCollecting(name, value, [String.Format(error, name, value)])
+        | Some error, InvalidCollecting(name, value, err) -> InvalidCollecting(name, value, err @ [String.Format(error, name, value)])
 
     /// Fix the current state of errors, bypassing all future validation checks if we're in an error state
     let fixErrors (step : ValidationResult<'a>) =
@@ -51,33 +49,42 @@ module Validators =
             InvalidDone(name, value, errors)
         | _ -> step
 
+    /// Fix the current state of errors, bypassing all future validation checks if we're in an error state
+    /// Also supplies a custom error message to replace the existing
+    let fixErrorsWithMessage errorMessage (step : ValidationResult<'a>) =
+        match step with
+        | InvalidCollecting(name, value, errors) -> 
+            // Switch us from invalid to invalid with errors fixed
+            InvalidDone(name, value, [errorMessage])
+        | _ -> step
+
     /// Begin a validation chain for a given property name
     let validate propertyName value = Valid(propertyName, value)
     
     // String validations
     let notNullOrWhitespace (str : ValidationResult<string>) = 
-        let validation value = not(String.IsNullOrWhiteSpace(value))
-        createValidator validation "{0} cannot be null or empty." str 
+        let validation value = if String.IsNullOrWhiteSpace(value) then Some "{0} cannot be null or empty." else None            
+        custom validation  str 
 
     let noSpaces (str : ValidationResult<string>) = 
-        let validation (value : string) = not(value.Contains(" "))
-        createValidator validation "{0} cannot contain a space." str
+        let validation (value : string) = if value.Contains(" ") then Some "{0} cannot contain a space." else None
+        custom validation str
 
     let hasLength (length : int) (str : ValidationResult<string>) = 
-        let validation (value : string) = value.Length = length
-        createValidator validation ("{0} must be " + length.ToString() + " characters long.") str
+        let validation (value : string) = if value.Length <> length then Some ("{0} must be " + length.ToString() + " characters long.") else None
+        custom validation str
 
     let hasLengthAtLeast (length : int) (str : ValidationResult<string>) = 
-        let validation (value : string) = value.Length >= length
-        createValidator validation ("{0} must be at least " + length.ToString() + " characters long.") str
+        let validation (value : string) = if value.Length < length then Some ("{0} must be at least " + length.ToString() + " characters long.") else None
+        custom validation str
 
     let hasLengthNoLongerThan (length : int) (str : ValidationResult<string>) = 
-        let validation (value : string) = value.Length <= length
-        createValidator validation ("{0} must be no longer than " + length.ToString() + " characters long") str
+        let validation (value : string) = if value.Length > length then Some ("{0} must be no longer than " + length.ToString() + " characters long") else None
+        custom validation str
         
     let private matchesPatternInternal (pattern : string) (errorMsg : string) (str : ValidationResult<string>) =
-        let validation (value : string) = Regex.IsMatch(value, pattern)
-        createValidator validation errorMsg str
+        let validation (value : string) = if Regex.IsMatch(value, pattern) then None else Some errorMsg
+        custom validation str
 
     let matchesPattern (pattern : string) str =
         matchesPatternInternal pattern ("{0} must match following pattern: " + pattern) str
@@ -96,30 +103,36 @@ module Validators =
 
     // Generic validations
     let notEqual value step = 
-        createValidator (fun v -> value <> v) ("{0} cannot equal " + value.ToString()) step
+        let validation v = if value = v then Some ("{0} cannot equal " + value.ToString()) else None
+        custom validation step
 
     let greaterThan value step =
-        createValidator (fun v -> v > value) ("{0} must be greater than " + value.ToString()) step
+        let validation v = if v > value v then None else Some ("{0} must be greater than " + value.ToString())
+        custom validation step
 
     let greaterOrEqualTo value step =
-        createValidator (fun v -> v >= value) ("{0} must be greater than or equal to " + value.ToString()) step
+        let validation v = if v >= value v then None else Some ("{0} must be greater than or equal to " + value.ToString())
+        custom validation step
 
     let lessThan value step =
-        createValidator (fun v -> v < value) ("{0} must be less than " + value.ToString()) step
+        let validation v = if v < value v then None else Some ("{0} must be less than " + value.ToString())
+        custom validation step
 
     let lessOrEqualTo value step =
-        createValidator (fun v -> v < value) ("{0} must be less than or equal to " + value.ToString()) step
+        let validation v = if v <= value v then None else Some ("{0} must be less than or equal to " + value.ToString())
+        custom validation step
 
     let isBetween lowerBound upperBound step =
-        createValidator (fun v -> lowerBound <= v && v <= upperBound) ("{0} must be between " + lowerBound.ToString() + " and " + upperBound.ToString()) step
+        let validation v = if lowerBound <= v && v <= upperBound then None else Some ("{0} must be between " + lowerBound.ToString() + " and " + upperBound.ToString())
+        custom validation step
     
     let containedWithin collection step =
-        let validation value = Option.isSome (Seq.tryFind ((=) value) collection)
-        createValidator validation ("{0} must be one of: " + String.Join(", ", Seq.map (fun i -> i.ToString()) collection)) step 
+        let validation value = if Option.isSome (Seq.tryFind ((=) value) collection) then None else Some ("{0} must be one of: " + String.Join(", ", Seq.map (fun i -> i.ToString()) collection))
+        custom validation step
 
     let notContainedWithin collection step =
-        let validation value = Option.isNone (Seq.tryFind ((=) value) collection)
-        createValidator validation ("{0} cannot be one of: " + String.Join(", ", Seq.map (fun i -> i.ToString()) collection)) step 
+        let validation value = if Option.isNone (Seq.tryFind ((=) value) collection) then None else Some ("{0} cannot be one of: " + String.Join(", ", Seq.map (fun i -> i.ToString()) collection))
+        custom validation step
 
     let result (step : ValidationResult<'a>) : string list =
         match step with
