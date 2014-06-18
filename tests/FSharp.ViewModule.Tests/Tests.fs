@@ -39,7 +39,7 @@ module SpecificTests =
         home.ShouldAlwaysRaiseInpcOnUserInterfaceThread(false) // Required for MvvmCross to not delay the prop changed events
 
         // Try to force an "extra" property dependency
-        let vm = home :> FSharp.ViewModule.Core.IViewModel
+        let vm = home :> FSharp.ViewModule.IViewModel
         vm.DependencyTracker.AddPropertyDependency(<@@ home.Fullname @@>, <@@ home.Firstname @@>)
 
         let resArr = ResizeArray<string>()

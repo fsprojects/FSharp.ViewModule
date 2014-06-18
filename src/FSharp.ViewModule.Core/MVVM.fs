@@ -78,21 +78,29 @@ type ViewModelPropertyFactory(dependencyTracker : IDependencyTracker, validation
     member this.FromFuncs (prop : Expr, getter, setter) =
         NotifyingValueFuncs<'a>(getPropertyNameFromExpression(prop), raisePropertyChanged, getter, setter) :> NotifyingValue<'a>
 
-    member this.CommandAsync(asyncWorkflow) =
-        let cmd = Commands.createAsyncInternal asyncWorkflow (fun () -> true)
+    member this.CommandAsync(asyncWorkflow, ?token, ?onCancel) =
+        let ct = defaultArg token CancellationToken.None
+        let oc = defaultArg onCancel (fun e -> ())
+        let cmd = Commands.createAsyncInternal asyncWorkflow (fun () -> true) ct oc
         cmd
 
-    member this.CommandAsyncChecked(asyncWorkflow, canExecute, ?dependentProperties: Expr list) =
-        let cmd = Commands.createAsyncInternal asyncWorkflow canExecute
+    member this.CommandAsyncChecked(asyncWorkflow, canExecute, ?dependentProperties: Expr list, ?token, ?onCancel) =
+        let ct = defaultArg token CancellationToken.None
+        let oc = defaultArg onCancel (fun e -> ())
+        let cmd = Commands.createAsyncInternal asyncWorkflow canExecute ct oc
         addCommandDependencies cmd dependentProperties
         cmd
 
-    member this.CommandAsyncParam(asyncWorkflow) =
-        let cmd = Commands.createAsyncParamInternal asyncWorkflow (fun _ -> true)
+    member this.CommandAsyncParam(asyncWorkflow, ?token, ?onCancel) =
+        let ct = defaultArg token CancellationToken.None
+        let oc = defaultArg onCancel (fun e -> ())
+        let cmd = Commands.createAsyncParamInternal asyncWorkflow (fun _ -> true) ct oc
         cmd
 
-    member this.CommandAsyncParamChecked(asyncWorkflow, canExecute, ?dependentProperties: Expr list) =
-        let cmd = Commands.createAsyncParamInternal asyncWorkflow canExecute
+    member this.CommandAsyncParamChecked(asyncWorkflow, canExecute, ?dependentProperties: Expr list, ?token, ?onCancel) =
+        let ct = defaultArg token CancellationToken.None
+        let oc = defaultArg onCancel (fun e -> ())
+        let cmd = Commands.createAsyncParamInternal asyncWorkflow canExecute ct oc
         addCommandDependencies cmd dependentProperties
         cmd
 

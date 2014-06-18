@@ -29,6 +29,13 @@ type INotifyCommand =
     /// Trigger the CanExecuteChanged event for this specific ICommand
     abstract RaiseCanExecuteChanged : unit -> unit
 
+/// <summary>Extension of INotifyCommand with a public property to supply a CancellationToken.</summary>
+/// <remarks>This allows the command to change the token for subsequent usages if required</remarks>
+type IAsyncNotifyCommand =
+    inherit INotifyCommand
+
+    abstract member CancellationToken : System.Threading.CancellationToken with get, set
+
 /// Interface used to explicitly raise PropertyChanged
 type IRaisePropertyChanged =
     inherit INotifyPropertyChanged
