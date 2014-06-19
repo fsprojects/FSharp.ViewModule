@@ -36,21 +36,20 @@ type FunCommand (execute : obj -> unit, canExecute, ?token) =
     member val private cancellationToken = (defaultArg token CancellationToken.None) with get, set
 
     // Constructor which works from async workflows, and auto disables the command while executing
-    new(asyncExecute, canExecute, token : CancellationToken, onCancel) as self =        
-        let ui = SynchronizationContext.Current
-        let executing = ref false
-        let ce = (fun a -> (not !executing) && canExecute(a))
+    new(asyncExecute, getExecuting, setExecuting, canExecute, token : CancellationToken, onCancel) as self =        
+        let ui = SynchronizationContext.Current        
+        let ce = (fun a -> (not(getExecuting())) && canExecute(a))
         // Build with default execute method, then replace
         FunCommand((fun a -> a |> ignore), ce, token)
         then
             let idg = self :> INotifyCommand
             let exec param = 
-                executing := true                
+                setExecuting(true)
                 idg.RaiseCanExecuteChanged()
                 let wf = async {
                     do! asyncExecute ui param
                     do! Async.SwitchToContext(ui)
-                    executing := false
+                    setExecuting(false)
                     idg.RaiseCanExecuteChanged()
                 }
                 Async.StartWithContinuations(
@@ -60,7 +59,7 @@ type FunCommand (execute : obj -> unit, canExecute, ?token) =
                     (fun e -> 
                         ui.Post((fun _ -> 
                             onCancel(e)
-                            executing := false
+                            setExecuting(false)
                             idg.RaiseCanExecuteChanged()
                             ), null)
                         ), 
@@ -92,9 +91,9 @@ module internal Commands =
         let func : obj -> unit = (fun _ -> execute())
         FunCommand(func, ceWrapped) :> INotifyCommand    
 
-    let createAsyncInternal (asyncWorkflow : (SynchronizationContext -> Async<unit>)) canExecute (token : CancellationToken) onCancel =
+    let createAsyncInternal (asyncWorkflow : (SynchronizationContext -> Async<unit>)) getExecuting setExecuting canExecute (token : CancellationToken) onCancel =
         let execute = (fun (ui : SynchronizationContext) (p : obj) -> asyncWorkflow(ui))
-        FunCommand(execute, (fun o -> canExecute()), token, onCancel) :> IAsyncNotifyCommand
+        FunCommand(execute, getExecuting, setExecuting, (fun o -> canExecute()), token, onCancel) :> IAsyncNotifyCommand
 
     let createSyncParamInternal<'a> (execute : ('a -> unit)) (canExecute : ('a -> bool)) =
         let ceWrapped o = 
@@ -120,7 +119,7 @@ module internal Commands =
 
         result
 
-    let createAsyncParamInternal<'a> (asyncWorkflow : (SynchronizationContext -> 'a -> Async<unit>)) (canExecute : ('a -> bool)) token onCancel =
+    let createAsyncParamInternal<'a> (asyncWorkflow : (SynchronizationContext -> 'a -> Async<unit>)) getExecuting setExecuting (canExecute : ('a -> bool)) token onCancel =
         let ceWrapped o = 
             let a = downcastAndCreateOption(o)            
             match a with
@@ -137,7 +136,7 @@ module internal Commands =
             | None -> emptyFunc ui o 
             | Some v -> asyncWorkflow ui v
 
-        let result = FunCommand(func, ceWrapped, token, onCancel) :> IAsyncNotifyCommand
+        let result = FunCommand(func, getExecuting, setExecuting, ceWrapped, token, onCancel) :> IAsyncNotifyCommand
 
         // Note that we need to handle the fact that the arg is passed as null the first time, due to stupid data binding issues.  Let's fix that here.
         // This will cause the command to requery the CanExecute method after everything's loaded, which will then pass onto the user's canExecute function.
