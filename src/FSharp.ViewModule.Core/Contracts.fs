@@ -55,6 +55,10 @@ type IValidationTracker =
     abstract SetEntityValidationResult : ValidationResult -> unit
     /// Clear all errors from the validation
     abstract ClearErrors : unit -> unit
+    /// Force a re-computation of a specific property's validation results
+    abstract Revalidate : string -> unit
+    /// Add a watcher for a property to validate
+    abstract AddPropertyValidationWatcher : string -> (unit -> string list) -> unit
 
 type IDependencyTracker =
     abstract AddPropertyDependencies : Expr * Expr list -> unit

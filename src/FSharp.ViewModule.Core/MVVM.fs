@@ -38,16 +38,20 @@ type internal NotifyingValueBackingField<'a> (propertyName, raisePropertyChanged
     inherit NotifyingValue<'a>()
     
     let mutable value = defaultValue
+    
+    let updateValidation () =
+        validate value
+    
     do
+        validationResultPublisher.AddPropertyValidationWatcher propertyName updateValidation
         if (SynchronizationContext.Current <> null) then
-            SynchronizationContext.Current.Post((fun _ -> validationResultPublisher.SetPropertyValidationResult(PropertyValidation(propertyName, validate(value)))), null)
+            SynchronizationContext.Current.Post((fun _ -> validationResultPublisher.Revalidate propertyName), null)
 
     override this.Value 
         with get() = value 
         and set(v) = 
             if (not (EqualityComparer<'a>.Default.Equals(value, v))) then
                 value <- v                                
-                validationResultPublisher.SetPropertyValidationResult(PropertyValidation(propertyName, validate(value)))
                 raisePropertyChanged propertyName                
 
 type internal NotifyingValueFuncs<'a> (propertyName, raisePropertyChanged : string -> unit, getter, setter) =
@@ -65,7 +69,6 @@ type ViewModelPropertyFactory(dependencyTracker : IDependencyTracker, validation
     let addCommandDependencies cmd dependentProperties =
         let deps : Expr list = defaultArg dependentProperties []
         deps |> List.iter (fun prop -> dependencyTracker.AddCommandDependency(cmd, prop)) 
-        dependencyTracker.AddCommandDependency(cmd, "HasErrors")
 
     member this.Backing (prop : Expr, defaultValue : 'a, validate : ValidationResult<'a> -> ValidationResult<'a>) =
         let validateFun = Validators.validate(getPropertyNameFromExpression(prop)) >> validate >> result
@@ -128,7 +131,7 @@ type ViewModelBase() as self =
     let depTracker = DependencyTracker(self.RaisePropertyChanged, propertyChanged.Publish)
     
     // Used for error tracking
-    let errorRelatedProperties = [ <@@ self.IsValid @@> ; <@@ self.EntityErrors @@> ; <@@ self.PropertyErrors @@> ]
+    let errorRelatedProperties = [ <@@ self.EntityErrors @@> ; <@@ self.PropertyErrors @@> ; <@@ self.IsValid @@> ]
     let errorRelatedPropertyNames = errorRelatedProperties |> List.map getPropertyNameFromExpression
 
     let errorsChanged = new Event<EventHandler<DataErrorsChangedEventArgs>, DataErrorsChangedEventArgs>()
@@ -168,6 +171,9 @@ type ViewModelBase() as self =
     /// Handles management of dependencies for all computed properties 
     /// as well as ICommand dependencies
     member this.DependencyTracker = depTracker :> IDependencyTracker
+
+    /// Manages tracking of validation information for the entity
+    member this.ValidationTracker = errorTracker :> IValidationTracker
 
     member this.IsValid with get() = not errorTracker.HasErrors
 

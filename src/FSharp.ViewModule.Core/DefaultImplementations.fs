@@ -37,6 +37,7 @@ type internal ValidationEntry =
 
 type ValidationTracker(raiseErrorsChanged : string -> unit, propertyChanged : IObservable<PropertyChangedEventArgs>, entityValidator : string -> ValidationResult seq, propertiesToIgnore : Expr list) =
     let errorDictionary = Dictionary<ValidationEntry, string list>()
+    let validationDictionary = Dictionary<string, unit -> string list>()
     let propertyNamesToIgnore = propertiesToIgnore |> List.map getPropertyNameFromExpression
 
     let getPropertyName ve =
@@ -65,11 +66,29 @@ type ValidationTracker(raiseErrorsChanged : string -> unit, propertyChanged : IO
 
         setErrorState key error
 
-    let validateProperties (pcea : PropertyChangedEventArgs) =        
-        let prop = propertyNamesToIgnore |> List.tryFind ((=) pcea.PropertyName)
+    let validateOneProperty propertyName =
+        let (exists, actions) = validationDictionary.TryGetValue propertyName
+        if exists then
+            let results = actions()
+            setResult(PropertyGeneratedValidation(PropertyValidation(propertyName, results)))
+
+    let validatePropertiesInternal (propertyName : string) =        
+        // Validate using entity level validation first...
+        let prop = propertyNamesToIgnore |> List.tryFind ((=) propertyName)
         if Option.isNone prop then
-            entityValidator(pcea.PropertyName)      
+            entityValidator(propertyName)      
             |> Seq.iter (fun vr -> setResult(EntityGeneratedValidation(vr)))
+        
+        // Now check individual property validations
+        if not(String.IsNullOrEmpty(propertyName)) then
+            validateOneProperty propertyName
+        else
+            // Now we need to track each property in our dictionary, one at a time
+            validationDictionary.Keys
+            |> Seq.iter (fun k -> validateOneProperty k)
+
+    let validateProperties (pcea : PropertyChangedEventArgs) =        
+        validatePropertiesInternal pcea.PropertyName
 
     let extractEntityEntry ve value =
         match ve, value with
@@ -126,6 +145,12 @@ type ValidationTracker(raiseErrorsChanged : string -> unit, propertyChanged : IO
         
         member this.ClearErrors() =
             errorDictionary.Clear()
+
+        member this.Revalidate propertyName =
+            validatePropertiesInternal propertyName
+
+        member this.AddPropertyValidationWatcher propertyName validation =
+            validationDictionary.Add(propertyName, validation)
 
 /// Default implementation of IDependencyTracker which can be used for any relevent ViewModel
 /// if an implementation does not already exist for the given framework
