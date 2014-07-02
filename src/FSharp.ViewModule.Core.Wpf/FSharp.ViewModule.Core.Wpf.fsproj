@@ -62,6 +62,9 @@
     <Compile Include="..\FSharp.ViewModule.Core\MVVM.fs">
       <Link>MVVM.fs</Link>
     </Compile>
+    <Compile Include="..\FSharp.ViewModule.Core\Progress.fs">
+      <Link>Progress.fs</Link>
+    </Compile>
   </ItemGroup>
   <PropertyGroup>
     <MinimumVisualStudioVersion Condition="'$(MinimumVisualStudioVersion)' == ''">11</MinimumVisualStudioVersion>
