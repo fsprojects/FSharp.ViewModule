@@ -70,4 +70,5 @@ module AssemblyHelpers =
 
     let loadViewModuleTypeSpecification (assembly : Assembly) typeName =
         let vmType = assembly.GetType(typeName)
-        Activator.CreateInstance(vmType) :?> IViewModuleTypeSpecification
+        let inst = Activator.CreateInstance(vmType) 
+        inst :?> IViewModuleTypeSpecification

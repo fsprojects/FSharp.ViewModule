@@ -17,6 +17,7 @@ limitations under the License.
 namespace FSharp.ViewModule.Demos.Core.ViewModels
 
 open FSharp.ViewModule
+open FSharp.ViewModule.TypeProvider
 
 type ViewModels = ViewModelProvider<"FSharp.ViewModule.Demos.Core", "FSharp.ViewModule.MvvmCross", "FSharp.ViewModule.MvvmCross.ViewModuleTypeSpecification">
 

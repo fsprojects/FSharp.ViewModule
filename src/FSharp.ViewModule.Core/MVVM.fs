@@ -196,4 +196,8 @@ type ViewModelBase() as self =
 
         [<CLIEvent>]
         member this.ErrorsChanged = errorsChanged.Publish
-        
+    
+    interface IViewModel with
+        member this.OperationExecuting with get() = this.OperationExecuting and set(v) = this.OperationExecuting <- v
+
+        member this.DependencyTracker = this.DependencyTracker

@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 *)
 
-module FSharp.ViewModule.TypeProvider
+namespace FSharp.ViewModule.TypeProvider
 
 open System
 open System.IO
@@ -41,15 +41,14 @@ type ViewModelTypeProvider (cfg: TypeProviderConfig) as this =
     let asm = Assembly.GetExecutingAssembly ()
     let ns = this.GetType().Namespace
     let pn = "ViewModelProvider"
-
-    let tempAsm = ProvidedAssembly(Path.ChangeExtension(Path.GetTempFileName(), ".dll"))
+    
     // TODO: See if there's a way to find the appropriate assembly/specification at runtime via reflection.
     // It appears this doesn't work with PCL assemblies, however, which is why they're currently being specified here.
     let parameters = 
         [
         ProvidedStaticParameter ("modelsAssembly", typeof<string>) 
-        ; ProvidedStaticParameter("modelsSpecificationAssembly", typeof<string>) 
-        ; ProvidedStaticParameter("modelsSpecification", typeof<string>) 
+        ; ProvidedStaticParameter("modelsSpecificationAssembly", typeof<string>, String.Empty) 
+        ; ProvidedStaticParameter("modelsSpecification", typeof<string>, String.Empty) 
         ]
     
     do
@@ -72,8 +71,7 @@ type ViewModelTypeProvider (cfg: TypeProviderConfig) as this =
                 | None -> null)
     
         try
-            let def = ProvidedTypeDefinition (asm, ns, pn, Some typeof<obj>, IsErased = false) 
-            tempAsm.AddTypes [def]
+            let def = ProvidedTypeDefinition (asm, ns, pn, Some typeof<obj>, IsErased = false)             
             def.DefineStaticParameters (parameters, this.GenerateTypes)
             this.AddNamespace(ns, [def])
         with 
@@ -88,13 +86,20 @@ type ViewModelTypeProvider (cfg: TypeProviderConfig) as this =
 
     /// GenerateTypes
     member internal this.GenerateTypes (typeName: string) (args: obj[]) =
+        let tempAsm = ProvidedAssembly(Path.ChangeExtension(Path.GetTempFileName(), ".dll"))
         let modelsAssembly = args.[0] :?> string
         let modelsSpecificationAssembly = args.[1] :?> string
         let modelsSpecification = args.[2] :?> string
 
         let masm = this.LoadAssemblyByFilename modelsAssembly
-        let vmcAssembly = this.LoadAssemblyByFilename modelsSpecificationAssembly
-        let vmcTemplate =  AssemblyHelpers.loadViewModuleTypeSpecification vmcAssembly modelsSpecification
+        
+        let vmcTemplate =  
+            match modelsSpecificationAssembly, modelsSpecification with
+            | "", "" ->
+                FSharp.ViewModule.TypeProvider.DefaultViewModuleTypeSpecification() :> FSharp.ViewModule.IViewModuleTypeSpecification
+            | _, _ ->
+                let vmcAssembly = this.LoadAssemblyByFilename modelsSpecificationAssembly
+                AssemblyHelpers.loadViewModuleTypeSpecification vmcAssembly modelsSpecification
 
         let types =
             Assembly.types masm

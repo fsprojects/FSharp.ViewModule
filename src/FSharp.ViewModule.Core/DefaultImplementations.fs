@@ -102,9 +102,14 @@ type ValidationTracker(raiseErrorsChanged : string -> unit, propertyChanged : IO
         | EntityEntry(_), _ -> None
         | PropertyEntry(pn,_), v -> Some (pn, v)
 
+    let ctx = SynchronizationContext.Current
     do
         propertyChanged.Subscribe(validateProperties) |> ignore
-        SynchronizationContext.Current.Post((fun _ -> validateProperties(PropertyChangedEventArgs(String.Empty))), null)
+        // We can't validate now, as we're not constructed completely at this point, so we post to the context
+        // in the UI if possible to validate us later
+        match ctx with
+        | null -> () 
+        | _ -> ctx.Post((fun _ -> validateProperties(PropertyChangedEventArgs(String.Empty))), null)
 
     member this.HasErrors with get() = errorDictionary.Count > 0
     member this.GetErrors propertyName =

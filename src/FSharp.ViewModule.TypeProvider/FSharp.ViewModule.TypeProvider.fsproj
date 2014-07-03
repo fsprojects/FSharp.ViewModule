@@ -62,6 +62,7 @@
     <None Include="packages.config" />
     <Compile Include="Helpers.fs" />
     <Compile Include="internal.fs" />
+    <Compile Include="DefaultProviderSpecification.fs" />
     <Compile Include="ViewModelProvider.fs" />
   </ItemGroup>
   <ItemGroup>

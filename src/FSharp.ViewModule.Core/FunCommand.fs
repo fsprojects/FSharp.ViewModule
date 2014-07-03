@@ -28,13 +28,15 @@ open Microsoft.FSharp.Quotations.Patterns
 open FSharp.ViewModule
 
 // Default command implementation for our MVVM base classes
-type FunCommand (execute : obj -> unit, canExecute, ?token) =
+type FunCommand (execute : obj -> unit, canExecute, token) =
     let canExecuteChanged = new Event<EventHandler, EventArgs>()
 
     member val private executeMethod = execute with get, set
 
-    member val private cancellationToken = (defaultArg token CancellationToken.None) with get, set
+    member val private cancellationToken = token with get, set
 
+    new(execute, canExecute) =
+        FunCommand(execute, canExecute, CancellationToken.None)
     // Constructor which works from async workflows, and auto disables the command while executing
     new(asyncExecute, getExecuting, setExecuting, canExecute, token : CancellationToken, onCancel) as self =        
         let ui = SynchronizationContext.Current        

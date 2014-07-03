@@ -1,12 +1,13 @@
-﻿// Copyright (c) Microsoft Corporation 2005-2012.
+﻿// Based on code developed for the F# 3.0 Beta release of March 2012,
+// Copyright (c) Microsoft Corporation 2005-2012.
 // This sample code is provided "as is" without warranty of any kind. 
 // We disclaim all warranties, either express or implied, including the 
 // warranties of merchantability and fitness for a particular purpose. 
 
 // This file contains a set of helper types and methods for providing types in an implementation 
 // of ITypeProvider.
-//
-// This code is a sample for use in conjunction with the F# 3.0 Developer Preview release of September 2011.
+
+// This code has been modified and is appropriate for use in conjunction with the F# 3.0, F# 3.1, and F# 3.1.1 releases
 
 
 namespace ProviderImplementation.ProvidedTypes
@@ -53,7 +54,7 @@ type ProvidedConstructor =
     /// Set a flag indicating that the constructor acts like an F# implicit constructor, so the
     /// parameters of the constructor become fields and can be accessed using Expr.GlobalVar with the
     /// same name.
-    member IsImplicitCtor : bool with set
+    member IsImplicitCtor : bool with get,set
 
     /// Add definition location information to the provided constructor.
     member AddDefinitionLocation : line:int * column:int * filePath:string -> unit
@@ -96,6 +97,9 @@ type ProvidedMethod =
     /// Add definition location information to the provided type definition.
     member AddDefinitionLocation : line:int * column:int * filePath:string -> unit
 
+    /// Add a custom attribute to the provided method definition.
+    member AddCustomAttribute : CustomAttributeData -> unit
+
 
 
 /// Represents an erased provided property.
@@ -130,6 +134,9 @@ type ProvidedProperty =
 
     /// Add definition location information to the provided type definition.
     member AddDefinitionLocation : line:int * column:int * filePath:string -> unit
+
+    /// Add a custom attribute to the provided property definition.
+    member AddCustomAttribute : CustomAttributeData -> unit
 
 /// Represents an erased provided property.
 type ProvidedEvent =
@@ -356,6 +363,9 @@ type ProvidedTypeDefinition =
     /// FSharp.Data addition: this method is used by Debug.fs
     member MakeParametricType : name:string * args:obj[] -> ProvidedTypeDefinition
 
+    /// Add a custom attribute to the provided type definition.
+    member AddCustomAttribute : CustomAttributeData -> unit
+
     /// FSharp.Data addition: this method is used by Debug.fs and QuotationBuilder.fs
     /// Emulate the F# type provider type erasure mechanism to get the 
     /// actual (erased) type. We erase ProvidedTypes to their base type
@@ -391,13 +401,13 @@ type ProvidedAssembly =
 type TypeProviderForNamespaces =
 
     /// Initializes a type provider to provide the types in the given namespace.
-    internal new : namespaceName:string * types: ProvidedTypeDefinition list -> TypeProviderForNamespaces
+    new : namespaceName:string * types: ProvidedTypeDefinition list -> TypeProviderForNamespaces
 
     /// Initializes a type provider 
-    internal new : unit -> TypeProviderForNamespaces
+    new : unit -> TypeProviderForNamespaces
 
     /// Add a namespace of provided types.
-    member internal AddNamespace : namespaceName:string * types: ProvidedTypeDefinition list -> unit
+    member AddNamespace : namespaceName:string * types: ProvidedTypeDefinition list -> unit
 
     /// FSharp.Data addition: this method is used by Debug.fs
     /// Get all namespace with their provided types.
@@ -416,6 +426,10 @@ type TypeProviderForNamespaces =
     member RegisterProbingFolder : folder : string -> unit
     /// Registers location of RuntimeAssembly (from TypeProviderConfig) as probing folder
     member RegisterRuntimeAssemblyLocationAsProbingFolder : cfg : Core.CompilerServices.TypeProviderConfig -> unit
+
 #endif
+
+    [<CLIEvent>]
+    member Disposing : IEvent<EventHandler,EventArgs>
 
     interface ITypeProvider

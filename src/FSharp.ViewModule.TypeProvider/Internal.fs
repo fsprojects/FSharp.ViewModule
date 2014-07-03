@@ -169,7 +169,9 @@ let propertyGetterCode (VM (modelType, moduleType, state)) (VMC (viewModelType, 
                     %%Expr.Call (Expr.Coerce (Expr.Var var, meth.DeclaringType), meth, []) 
                     () @@>)
             // TODO: This would be better stored as a field, and returned from the property, instead of generated each time
-            Expr.NewObject(commandType.GetConstructor([| typeof<(obj -> unit)>; typeof<(obj -> bool)> |]), [ Expr.Application (lambda, Expr.Coerce (this, typeof<obj>)) ; <@ (fun (o:obj) -> true) @> ])
+            let construct = 
+                commandType.GetConstructor([| typeof<(obj -> unit)>; typeof<(obj -> bool)> |])
+            Expr.NewObject(construct, [ Expr.Application (lambda, Expr.Coerce (this, typeof<obj>)) ; <@ (fun (o:obj) -> true) @> ])
         | _ -> raise <| ArgumentException ()
 
 let propertySetterCode (VM (modelType, moduleType, state)) = function
@@ -311,8 +313,8 @@ let generateViewModel vm (vmc : IViewModuleTypeSpecification) =
                 () @@>
 
             | _ -> raise <| ArgumentException ())
-        let baseCtor = vmc.ViewModelType.GetConstructor (BindingFlags.Public ||| BindingFlags.Instance, null, [||], null)
-        ctor.BaseConstructorCall <- fun _ -> baseCtor, []
+        let baseCtor = vmc.ViewModelType.GetConstructor (BindingFlags.Public ||| BindingFlags.NonPublic ||| BindingFlags.Instance, null, [||], null)
+        ctor.BaseConstructorCall <- fun args -> baseCtor, [args.[0]]
         vmp.AddMember ctor
     | None -> ()
 
@@ -323,8 +325,8 @@ let generateViewModel vm (vmc : IViewModuleTypeSpecification) =
             %%sequentialAddNotifyComputeds
             () @@>))
 
-    let baseCtor = vmc.ViewModelType.GetConstructor (BindingFlags.Public ||| BindingFlags.Instance, null, [||], null)
-    ctor.BaseConstructorCall <- fun _ -> baseCtor, []
+    let baseCtor = vmc.ViewModelType.GetConstructor (BindingFlags.Public ||| BindingFlags.NonPublic ||| BindingFlags.Instance, null, [||], null)
+    ctor.BaseConstructorCall <- fun args -> baseCtor, [args.[0]]
     vmp.AddMember ctor
 
     // Generate properties.
