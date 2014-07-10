@@ -30,4 +30,6 @@ module internal Utilities =
         | _ -> ""
 
 
-        
+module public Helpers =
+    let getPropertyNameFromExpression(expr : Expr) =
+        Utilities.getPropertyNameFromExpression(expr)
