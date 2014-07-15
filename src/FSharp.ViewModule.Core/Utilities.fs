@@ -33,3 +33,21 @@ module internal Utilities =
 module public Helpers =
     let getPropertyNameFromExpression(expr : Expr) =
         Utilities.getPropertyNameFromExpression(expr)
+
+    let runOnContextIfExists (syncContext : System.Threading.SynchronizationContext) action =
+        match syncContext with
+        | null -> action()
+        | ctx -> ctx.Post((fun s -> action()), null)
+
+    let runOnCurrentContextIfExists action =
+        runOnContextIfExists System.Threading.SynchronizationContext.Current action
+
+module public CollectionHelpers =
+    let bindObservableToCollectionOnContext<'a> syncContext (collection: System.Collections.ObjectModel.ObservableCollection<'a>)  (observable : IObservable<'a>) =        
+        observable.Subscribe(fun o -> 
+            let action () = collection.Add(o)
+            Helpers.runOnContextIfExists syncContext action) 
+
+    let bindObservableToCollection<'a> collection observable =
+        let ctx = System.Threading.SynchronizationContext.Current
+        bindObservableToCollectionOnContext ctx collection observable
