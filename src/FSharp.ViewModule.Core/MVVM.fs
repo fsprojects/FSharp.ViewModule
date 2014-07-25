@@ -19,6 +19,8 @@ namespace FSharp.ViewModule
 open System
 open System.ComponentModel
 open System.Collections.Generic
+open System.Runtime.InteropServices
+open System.Runtime.CompilerServices
 open System.Threading
 open System.Windows.Input
 
@@ -158,7 +160,7 @@ type ViewModelBase() as self =
             errorRelatedPropertyNames
             |> List.iter (fun p -> this.RaisePropertyChanged(p))
 
-    member this.RaisePropertyChanged(propertyName : string) =
+    member this.RaisePropertyChanged([<Optional;DefaultParameterValue(null);CallerMemberName>]propertyName : string) =
         propertyChanged.Trigger(this, new PropertyChangedEventArgs(propertyName))
         
     member this.RaisePropertyChanged(expr : Expr) =
