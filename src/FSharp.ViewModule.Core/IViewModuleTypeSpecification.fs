@@ -18,7 +18,6 @@ namespace FSharp.ViewModule
 
 open Microsoft.FSharp.Quotations
 open System.Windows.Input
-open System.ComponentModel.DataAnnotations
 open System.ComponentModel
 
 /// This is the specification required to determine which platform target the type provider builds

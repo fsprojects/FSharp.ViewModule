@@ -143,7 +143,7 @@ type ViewModelUntyped() as self =
             errorRelatedPropertyNames
             |> List.iter (fun p -> this.RaisePropertyChanged(p))
 
-    member this.RaisePropertyChanged([<Optional;DefaultParameterValue(null);CallerMemberName>]propertyName : string) =
+    member this.RaisePropertyChanged(propertyName : string) =
         propertyChanged.Trigger(this, new PropertyChangedEventArgs(propertyName))
         
     member this.RaisePropertyChanged(expr : Expr) =
