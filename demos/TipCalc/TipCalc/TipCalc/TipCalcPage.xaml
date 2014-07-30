@@ -1,0 +1,98 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://xamarin.com/schemas/2014/forms"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:TipCalc;assembly=TipCalc"
+			 xmlns:model="clr-namespace:TipCalc;assembly=TipCalcVM"
+             x:Class="TipCalc.TipCalcPage"
+             Padding="5, 20, 5, 0">
+
+  <ContentPage.Resources>
+    <ResourceDictionary>
+      <model:TipCalcModel x:Key="model" />
+      <local:DoubleToStringConverter x:Key="stringConverter" />
+      <local:DoubleRoundingConverter x:Key="roundConverter" />
+    </ResourceDictionary>
+  </ContentPage.Resources>
+
+  <Grid BindingContext="{StaticResource model}">
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="Auto" />
+    </Grid.RowDefinitions>
+
+    <Grid.ColumnDefinitions>
+      <ColumnDefinition Width="*" />
+      <ColumnDefinition Width="*" />
+    </Grid.ColumnDefinitions>
+
+    <Label Text="Food &amp; Drink:"
+           Grid.Row="0" Grid.Column="0"
+           Font="Large"
+           XAlign="End" YAlign="Center" />
+
+    <Entry Grid.Row="0" Grid.Column="1"
+           Keyboard="Numeric"
+           Placeholder="Subtotal"
+           Text ="{Binding SubTotal, 
+                           Converter={StaticResource stringConverter}}" />
+
+    <Label Text="Total after Tax:"
+           Grid.Row="1" Grid.Column="0"
+           Font="Large"
+           XAlign="End" YAlign="Center" />
+
+    <Entry Grid.Row="1" Grid.Column="1"
+           Keyboard="Numeric"
+           Placeholder="Receipt total"
+           Text="{Binding PostTaxTotal,
+                          Converter={StaticResource stringConverter}}" />
+
+    <Label Text="Tip Percent:"
+           Grid.Row="2" Grid.Column="0"
+           Font="Large"
+           XAlign="End" YAlign="Center" />
+
+    <Entry Grid.Row="2" Grid.Column="1"
+           Keyboard="Numeric"
+           Text="{Binding TipPercent,
+                          Converter={StaticResource stringConverter}}" />
+    
+    <Slider Grid.Row="3" Grid.Column="1" 
+            Minimum="0" Maximum="100"
+            Value="{Binding TipPercent, Mode=TwoWay,
+                            Converter={StaticResource roundConverter},
+                            ConverterParameter=0.5}" />
+
+    <Label Text="Tip Amount:"
+           Grid.Row="4" Grid.Column="0"
+           Font="Large"
+           XAlign="End" YAlign="Center" />
+
+    <ContentView BackgroundColor="#40808080"
+                 Grid.Row="4" Grid.Column="1"
+                 Padding="10, 10, 40, 10">
+      <Label Text="{Binding TipAmount,
+                            StringFormat='{0:C}'}"
+             Font="Large"
+             XAlign="End" />
+    </ContentView>
+    
+    <Label Text="Total:"
+           Grid.Row="5" Grid.Column="0"
+           Font="Large"
+           XAlign="End" YAlign="Center" />
+
+    <ContentView BackgroundColor="#40808080"
+                 Grid.Row="5" Grid.Column="1"
+                 Padding="10, 10, 40, 10">
+        <Label Text="{Binding Total, 
+                              StringFormat='{0:C}'}"
+               Font="Large"
+               XAlign="End" />
+    </ContentView>
+  </Grid>
+</ContentPage>
