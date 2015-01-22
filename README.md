@@ -1,4 +1,7 @@
-FSharp.ViewModule
+[![Issue Stats](http://issuestats.com/github/fsprojects/FSharp.ViewModule/badge/issue)](http://issuestats.com/github/fsprojects/FSharp.ViewModule)
+[![Issue Stats](http://issuestats.com/github/fsprojects/FSharp.ViewModule/badge/pr)](http://issuestats.com/github/fsprojects/FSharp.ViewModule)
+
+FSharp.ViewModule [![NuGet Status](http://img.shields.io/nuget/v/FSharp.ViewModule.Core.svg?style=flat)](https://www.nuget.org/packages/FSharp.ViewModule.Core/)
 =================
 
 Type provider to generate an MVVM style ViewModel directly from an idiomatic F# module
