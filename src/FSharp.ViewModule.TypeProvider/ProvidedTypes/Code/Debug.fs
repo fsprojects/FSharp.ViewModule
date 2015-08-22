@@ -1,21 +1,4 @@
-﻿(*
-Copyright (c) 2013-2014 FSharp.ViewModule Team
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*)
-
-
-// --------------------------------------------------------------------------------------
+﻿// --------------------------------------------------------------------------------------
 // Helpers for writing type providers
 // ----------------------------------------------------------------------------------------------
 
@@ -32,24 +15,11 @@ open Microsoft.FSharp.Quotations.Patterns
 open Microsoft.FSharp.Reflection
 open ProviderImplementation.ProvidedTypes
 
-type Platform =
-    | Full
-    | Portable
-    | Silverlight
-    member x.RuntimeAssemblyVersion =
-        match x with
-        | Full -> Version(4, 0, 0, 0)
-        | Portable -> Version(2, 0, 5, 0)
-        | Silverlight -> Version(5, 0, 5, 0)
-
-module Debug = 
-
-    /// Converts a sequence of strings to a single string separated with the delimiters
-    let inline private separatedBy delimiter (items: string seq) = String.Join(delimiter, Array.ofSeq items)
+module internal Debug = 
 
     /// Simulates a real instance of TypeProviderConfig and then creates an instance of the last
     /// type provider added to a namespace by the type provider constructor
-    let generate (resolutionFolder: string) (runtimeAssembly: string) (platform:Platform) typeProviderForNamespacesConstructor args =
+    let generate (resolutionFolder: string) (runtimeAssembly: string) typeProviderForNamespacesConstructor args =
 
         let cfg = new TypeProviderConfig(fun _ -> false)
         let (?<-) cfg prop value =
@@ -57,7 +27,6 @@ module Debug =
         cfg?ResolutionFolder <- resolutionFolder
         cfg?RuntimeAssembly <- runtimeAssembly
         cfg?ReferencedAssemblies <- Array.zeroCreate<string> 0
-        cfg?SystemRuntimeAssemblyVersion <- platform.RuntimeAssemblyVersion
 
         let typeProviderForNamespaces = typeProviderForNamespacesConstructor cfg :> TypeProviderForNamespaces
 
@@ -66,7 +35,12 @@ module Debug =
         match args with
         | [||] -> providedTypeDefinition
         | args ->
-            let typeName = providedTypeDefinition.Name + (args |> Seq.map (fun s -> ",\"" + (if s = null then "" else s.ToString()) + "\"") |> Seq.reduce (+))
+            let typeName =
+                if providedTypeDefinition.IsErased then
+                    providedTypeDefinition.Name + (args |> Seq.map (fun s -> ",\"" + (if s = null then "" else s.ToString()) + "\"") |> Seq.reduce (+))
+                else
+                    // The type name ends up quite mangled in the dll output if we combine the name using static parameters, so for generated types we don't do that
+                    providedTypeDefinition.Name 
             providedTypeDefinition.MakeParametricType(typeName, args)
 
     /// Returns a string representation of the signature (and optionally also the body) of all the
@@ -99,74 +73,70 @@ module Debug =
 
         let rec toString useFullName (t: Type) =
 
-            if t = null then
-                "<NULL>" // happens in the Freebase provider
+            let hasUnitOfMeasure = t.Name.Contains("[")
+
+            let innerToString (t: Type) =
+                match t with
+                | t when t = typeof<bool> -> "bool"
+                | t when t = typeof<obj> -> "obj"
+                | t when t = typeof<int> -> "int"
+                | t when t = typeof<int64> -> "int64"
+                | t when t = typeof<float> -> "float"
+                | t when t = typeof<float32> -> "float32"
+                | t when t = typeof<decimal> -> "decimal"
+                | t when t = typeof<string> -> "string"
+                | t when t = typeof<Void> -> "()"
+                | t when t = typeof<unit> -> "()"
+                | t when t.IsArray -> (t.GetElementType() |> toString useFullName) + "[]"
+                | :? ProvidedTypeDefinition as t ->
+                    add t
+                    t.Name.Split(',').[0]
+                | t when t.IsGenericType ->
+                    let args =
+                        if useFullName then
+                            t.GetGenericArguments() 
+                            |> Seq.map (if hasUnitOfMeasure then (fun t -> t.Name) else toString useFullName)
+                        else
+                            t.GetGenericArguments() 
+                            |> Seq.map (fun _ -> "_")
+                    if FSharpType.IsTuple t then
+                        String.concat " * " args
+                    elif t.Name.StartsWith "FSharpFunc`" then
+                        "(" + (String.concat " -> " args) + ")"
+                    else 
+                        let args = String.concat "," args
+                        let name, reverse = 
+                            match t with
+                            | t when hasUnitOfMeasure -> toString useFullName t.UnderlyingSystemType, false
+                            | t when t.GetGenericTypeDefinition().Name = typeof<int seq>.GetGenericTypeDefinition().Name -> "seq", true
+                            | t when t.GetGenericTypeDefinition().Name = typeof<int list>.GetGenericTypeDefinition().Name -> "list", true
+                            | t when t.GetGenericTypeDefinition().Name = typeof<int option>.GetGenericTypeDefinition().Name -> "option", true
+                            | t when t.GetGenericTypeDefinition().Name = typeof<int ref>.GetGenericTypeDefinition().Name -> "ref", true
+                            | t when t.Name = "FSharpAsync`1" -> "async", true
+                            | t when ns.Contains t.Namespace -> t.Name, false
+                            | t -> (if useFullName then fullName t else t.Name), false
+                        let name = name.Split('`').[0]
+                        if reverse then
+                            args + " " + name 
+                        else
+                            name + "<" + args + ">"
+                | t when ns.Contains t.Namespace -> t.Name
+                | t when t.IsGenericParameter -> t.Name
+                | t -> if useFullName then fullName t else t.Name
+
+            let rec warnIfWrongAssembly (t:Type) =
+                match t with
+                | :? ProvidedTypeDefinition -> ""
+                | t when t.IsGenericType -> defaultArg (t.GetGenericArguments() |> Seq.map warnIfWrongAssembly |> Seq.tryFind (fun s -> s <> "")) ""
+                | t when t.IsArray -> warnIfWrongAssembly <| t.GetElementType()
+                | t -> if not t.IsGenericParameter && t.Assembly = Assembly.GetExecutingAssembly() then " [DESIGNTIME]" else ""
+
+            if ignoreOutput then
+                ""
+            elif hasUnitOfMeasure || t.IsGenericParameter || t.DeclaringType = null then
+                innerToString t + (warnIfWrongAssembly t)
             else
-
-                let hasUnitOfMeasure = t.Name.Contains("[")
-
-                let innerToString (t: Type) =
-                    match t with
-                    | t when t = typeof<bool> -> "bool"
-                    | t when t = typeof<obj> -> "obj"
-                    | t when t = typeof<int> -> "int"
-                    | t when t = typeof<int64> -> "int64"
-                    | t when t = typeof<float> -> "float"
-                    | t when t = typeof<float32> -> "float32"
-                    | t when t = typeof<decimal> -> "decimal"
-                    | t when t = typeof<string> -> "string"
-                    | t when t = typeof<Void> -> "()"
-                    | t when t = typeof<unit> -> "()"
-                    | t when t.IsArray -> (t.GetElementType() |> toString useFullName) + "[]"
-                    | :? ProvidedTypeDefinition as t ->
-                        add t
-                        t.Name.Split(',').[0]
-                    | t when t.IsGenericType ->            
-                        let args =                 
-                            if useFullName then
-                                t.GetGenericArguments() 
-                                |> Seq.map (if hasUnitOfMeasure then (fun t -> t.Name) else toString useFullName)
-                            else
-                                t.GetGenericArguments() 
-                                |> Seq.map (fun _ -> "_")
-                        if FSharpType.IsTuple t then
-                            separatedBy " * " args
-                        elif t.Name.StartsWith "FSharpFunc`" then
-                            "(" + separatedBy " -> " args + ")"
-                        else 
-                          let args = separatedBy "," args
-                          let name, reverse = 
-                              match t with
-                              | t when hasUnitOfMeasure -> toString useFullName t.UnderlyingSystemType, false
-                              | t when t.GetGenericTypeDefinition() = typeof<int seq>.GetGenericTypeDefinition() -> "seq", true
-                              | t when t.GetGenericTypeDefinition() = typeof<int list>.GetGenericTypeDefinition() -> "list", true
-                              | t when t.GetGenericTypeDefinition() = typeof<int option>.GetGenericTypeDefinition() -> "option", true
-                              | t when t.GetGenericTypeDefinition() = typeof<int ref>.GetGenericTypeDefinition() -> "ref", true
-                              | t when t.Name = "FSharpAsync`1" -> "async", true
-                              | t when ns.Contains t.Namespace -> t.Name, false
-                              | t -> (if useFullName then fullName t else t.Name), false
-                          let name = name.Split('`').[0]
-                          if reverse then
-                              args + " " + name 
-                          else
-                              name + "<" + args + ">"
-                    | t when ns.Contains t.Namespace -> t.Name
-                    | t when t.IsGenericParameter -> t.Name
-                    | t -> if useFullName then fullName t else t.Name
-
-                let rec warnIfWrongAssembly (t:Type) =
-                    match t with
-                    | :? ProvidedTypeDefinition as t -> ""
-                    | t when t.IsGenericType -> defaultArg (t.GetGenericArguments() |> Seq.map warnIfWrongAssembly |> Seq.tryFind (fun s -> s <> "")) ""
-                    | t when t.IsArray -> warnIfWrongAssembly <| t.GetElementType()
-                    | t -> if not t.IsGenericParameter && t.Assembly = Assembly.GetExecutingAssembly() then " [DESIGNTIME]" else ""
-
-                if ignoreOutput then
-                    ""
-                elif hasUnitOfMeasure || t.IsGenericParameter || t.DeclaringType = null then
-                    innerToString t + (warnIfWrongAssembly t)
-                else
-                    (toString useFullName t.DeclaringType) + "+" + (innerToString t) + (warnIfWrongAssembly t)
+                (toString useFullName t.DeclaringType) + "+" + (innerToString t) + (warnIfWrongAssembly t)
 
         let toSignature (parameters: ParameterInfo[]) =
             if parameters.Length = 0 then
@@ -174,7 +144,7 @@ module Debug =
             else
                 parameters 
                 |> Seq.map (fun p -> p.Name + ":" + (toString true p.ParameterType))
-                |> separatedBy " -> "
+                |> String.concat " -> "
 
         let printExpr expr =
 
@@ -193,6 +163,13 @@ module Debug =
             | Let _ | NewArray _ | NewTuple _ -> true
             | _ -> false
 
+            let inline getAttrs attrName m = 
+                ( ^a : (member GetCustomAttributesData : unit -> IList<CustomAttributeData>) m)
+                |> Seq.filter (fun attr -> attr.Constructor.DeclaringType.Name = attrName) 
+
+            let inline hasAttr attrName m = 
+                not (Seq.isEmpty (getAttrs attrName m))
+
             let rec printSeparatedByCommas exprs = 
                 match exprs with
                 | [] -> ()
@@ -205,7 +182,7 @@ module Debug =
             and printCall fromPipe printName (mi:MethodInfo) args = 
                 if fromPipe && List.length args = 1 then
                     printName()
-                elif mi.GetCustomAttributes(typeof<Core.CompilationArgumentCountsAttribute>, true) |> Seq.isEmpty then
+                elif not (hasAttr "CompilationArgumentCountsAttribute" mi) then
                     printName()
                     match args with
                     | [] -> print "()"
@@ -234,8 +211,14 @@ module Debug =
                         print ".["
                         printExpr false true args.Tail.Head
                         print "]"
-                    elif mi.DeclaringType.IsGenericType && mi.DeclaringType.GetGenericTypeDefinition() = typeof<int option>.GetGenericTypeDefinition() then
-                        if args.IsEmpty then print "None"
+                    elif mi.DeclaringType.IsGenericType && mi.DeclaringType.GetGenericTypeDefinition().Name = typeof<int option>.GetGenericTypeDefinition().Name then
+                        if args.IsEmpty then 
+                            match instance with
+                            | None -> print "None"
+                            | Some instance -> 
+                                printExpr false true instance
+                                print "."
+                                print <| mi.Name.Substring("get_".Length)
                         else 
                           print "Some "
                           printExpr false true args.Head
@@ -257,7 +240,7 @@ module Debug =
                         printExpr false false args.Head
                         print " |> "
                         match args.Tail.Head with
-                        | Lambda (var, (Call(_,_,_) as call)) -> printExpr true false call
+                        | Lambda (_, (Call(_,_,_) as call)) -> printExpr true false call
                         | _ as expr -> printExpr false false expr
                     else
                         let printName() =
@@ -267,7 +250,7 @@ module Debug =
                             print "."
                             print mi.Name
                         let isOptional (arg:Expr, param:ParameterInfo) =
-                            not (Seq.isEmpty <| param.GetCustomAttributes(typeof<OptionalArgumentAttribute>, true))
+                            hasAttr "OptionalArgumentAttribute" param
                             && arg.ToString() = "Call (None, get_None, [])"
                         let args = 
                             mi.GetParameters()
@@ -278,7 +261,7 @@ module Debug =
                         printCall fromPipe printName mi args
                 | Let (var1, TupleGet (Var x, 1), Let (var2, TupleGet (Var y, 0), body)) when x = y ->
                     let indent = getCurrentIndent()
-                    bprintf sb "let %s, %s = %s" var1.Name var2.Name x.Name
+                    bprintf sb "let %s, %s = %s" var2.Name var1.Name x.Name
                     breakLine indent
                     printExpr false false body
                 | Let (var, value, body) ->
@@ -311,8 +294,13 @@ module Debug =
                 | Var (var) ->
                     print var.Name
                 | NewObject (ci, args) ->
-                    let compilationMappings = ci.DeclaringType.GetCustomAttributes(typeof<CompilationMappingAttribute>, true) |> Seq.cast<CompilationMappingAttribute>
-                    if not <| Seq.isEmpty compilationMappings && (Seq.head compilationMappings).SourceConstructFlags = SourceConstructFlags.RecordType then
+                    let getSourceConstructFlags (attr:CustomAttributeData) =
+                        let arg = attr.ConstructorArguments
+                                  |> Seq.filter (fun arg -> arg.ArgumentType.Name = "SourceConstructFlags") 
+                                  |> Seq.head
+                        arg.Value :?> int
+                    let compilationMappings = getAttrs "CompilationMappingAttribute" ci.DeclaringType
+                    if not (Seq.isEmpty compilationMappings) && (getSourceConstructFlags (Seq.head compilationMappings)) = int SourceConstructFlags.RecordType then
                         print "{ "
                         let indent = getCurrentIndent()
                         let recordFields = FSharpType.GetRecordFields(ci.DeclaringType)
@@ -428,6 +416,7 @@ module Debug =
                 |> m.GetInvokeCodeInternal false
 
             let getConstructorBody (c: ProvidedConstructor) = 
+                if c.IsImplicitCtor then Expr.Value(()) else
                 seq { for param in c.GetParameters() do yield (ProvidedTypeDefinition.EraseType param.ParameterType) }
                 |> Seq.map (fun typ -> Expr.Value(null, typ))
                 |> Array.ofSeq
@@ -437,7 +426,7 @@ module Debug =
                 if not ignoreOutput then
                     let rec removeParams x = 
                       match x with
-                      | Let (var, Value(null, _), body) -> removeParams body
+                      | Let (_, Value(null, _), body) -> removeParams body
                       | _ -> x
                     let formattedExpr = printExpr (removeParams x)
                     print formattedExpr
@@ -448,6 +437,12 @@ module Debug =
                     ""
                 else 
                     sprintf "\n%O\n" x
+
+            let getName (m:MemberInfo) = 
+                if memberInfo.Name.Contains(" ") then
+                    "``" + m.Name + "``"
+                else
+                    m.Name
 
             match memberInfo with
 
@@ -464,14 +459,14 @@ module Debug =
                     if signatureOnly then ""
                     else field.GetRawConstantValue() |> printObj
                 if not ignoreOutput then
-                    print <| "val " + field.Name + ": " + 
+                    print <| "val " + (getName field) + ": " + 
                              (toString true field.FieldType) + 
                              value
                          
             | :? ProvidedProperty as prop -> 
                 if not ignoreOutput then
                     print <| (if prop.IsStatic then "static " else "") + "member " + 
-                             prop.Name + ": " + (toString true prop.PropertyType) + 
+                             (getName prop) + ": " + (toString true prop.PropertyType) + 
                              " with " + (if prop.CanRead && prop.CanWrite then "get, set" else if prop.CanRead then "get" else "set")
                 if not signatureOnly then
                     if prop.CanRead then
@@ -483,7 +478,7 @@ module Debug =
                 if m.Attributes &&& MethodAttributes.SpecialName <> MethodAttributes.SpecialName then
                     if not ignoreOutput then
                         print <| (if m.IsStatic then "static " else "") + "member " + 
-                        m.Name + ": " + (toSignature <| m.GetParameters()) + 
+                        (getName m) + ": " + (toSignature <| m.GetParameters()) + 
                         " -> " + (toString true m.ReturnType)
                     if not signatureOnly then
                         m |> getMethodBody |> printExpr
@@ -502,6 +497,10 @@ module Debug =
                 |> Seq.sortBy (fun m -> m.Name)
                 |> Seq.truncate maxWidth
             for t in pendingForThisDepth do
+                //Disabled because not working on Mono
+                //for attr in t.GetCustomAttributesData() do
+                //     print <| (sprintf "[<%A>]" attr).Replace("Microsoft.FSharp.Core.", null).Replace("CompilerServices.", null).Replace("Attribute(", "(")
+                //     println()
                 match t with
                 | t when FSharpType.IsRecord t-> "record "
                 | t when FSharpType.IsModule t -> "module "
@@ -509,7 +508,7 @@ module Debug =
                 | t when t.IsClass && t.IsSealed && t.IsAbstract -> "static class "
                 | t when t.IsClass && t.IsAbstract -> "abstract class "
                 | t when t.IsClass -> "class "
-                | t -> ""
+                | _ -> ""
                 |> print
                 print (toString true t)
                 if t.BaseType <> typeof<obj> then
