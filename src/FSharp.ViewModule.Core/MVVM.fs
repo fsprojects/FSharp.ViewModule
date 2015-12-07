@@ -31,15 +31,34 @@ open FSharp.ViewModule
 open FSharp.ViewModule.Validation
 
 /// Encapsulation of a value which handles raising property changed automatically in a clean manner
-[<AbstractClass>]
-type public NotifyingValue<'a>() =
+type public INotifyingValue<'a> =
+    inherit IObservable<'a>
     /// Extracts the current value from the backing storage
     abstract member Value : 'a with get, set
 
+type public NotifyingValue<'a>(defaultValue) =
+    let mutable value = defaultValue
+    let ev = Event<'a>()
+        
+    member __.Value 
+        with get() = value 
+        and set(v) = 
+            if (not (EqualityComparer<'a>.Default.Equals(value, v))) then
+                value <- v
+                ev.Trigger v
+
+    interface IObservable<'a> with
+        member this.Subscribe observer =
+            let obs = ev.Publish :> IObservable<'a>
+            obs.Subscribe observer
+
+    interface INotifyingValue<'a> with
+        member this.Value with get() = this.Value and set(v) = this.Value <- v    
+
 type IViewModelPropertyFactory =
-    abstract Backing<'a> : prop:Expr * defaultValue:'a * validate:(ValidationResult<'a> -> ValidationResult<'a>) -> NotifyingValue<'a>
-    abstract Backing<'a> : prop:Expr * defaultValue:'a * ?validate:('a -> string list) -> NotifyingValue<'a>
-    abstract FromFuncs<'a> : prop:Expr * getter:(unit->'a) * setter: ('a->unit) -> NotifyingValue<'a>
+    abstract Backing<'a> : prop:Expr * defaultValue:'a * validate:(ValidationResult<'a> -> ValidationResult<'a>) -> INotifyingValue<'a>
+    abstract Backing<'a> : prop:Expr * defaultValue:'a * ?validate:('a -> string list) -> INotifyingValue<'a>
+    abstract FromFuncs<'a> : prop:Expr * getter:(unit->'a) * setter: ('a->unit) -> INotifyingValue<'a>
 
     abstract CommandAsync : asyncWorkflow:(SynchronizationContext -> Async<unit>) * ?token:CancellationToken * ?onCancel:(OperationCanceledException -> unit) -> IAsyncNotifyCommand
     abstract CommandAsyncChecked : asyncWorkflow:(SynchronizationContext -> Async<unit>) * canExecute:(unit -> bool) * ?dependentProperties: Expr list * ?token:CancellationToken * ?onCancel:(OperationCanceledException -> unit) -> IAsyncNotifyCommand
@@ -62,35 +81,51 @@ type IEventViewModelPropertyFactory<'a> =
     abstract EventValueCommandChecked<'a> : canExecute:('a -> bool) * ?dependentProperties: Expr list -> INotifyCommand
     abstract EventValueCommandChecked<'a,'b> : valueFactory:('b -> 'a) * canExecute:('b -> bool) * ?dependentProperties: Expr list -> INotifyCommand
 
-type internal NotifyingValueBackingField<'a> (propertyName, raisePropertyChanged : string -> unit, defaultValue : 'a, validationResultPublisher : IValidationTracker, validate : 'a -> string list) =
-    inherit NotifyingValue<'a>()
-    
-    let mutable value = defaultValue
+type internal NotifyingValueBackingField<'a> (propertyName, raisePropertyChanged : string -> unit, defaultValue : 'a, validationResultPublisher : IValidationTracker, validate : 'a -> string list) =    
+    let value = NotifyingValue<'a>(defaultValue)
     
     let updateValidation () =
-        validate value
+        validate value.Value
     
     do
+        value.Add (fun _ -> raisePropertyChanged propertyName)
+
         validationResultPublisher.AddPropertyValidationWatcher propertyName updateValidation
         if (SynchronizationContext.Current <> null) then
             SynchronizationContext.Current.Post((fun _ -> validationResultPublisher.Revalidate propertyName), null)
 
-    override this.Value 
-        with get() = value 
-        and set(v) = 
-            if (not (EqualityComparer<'a>.Default.Equals(value, v))) then
-                value <- v                                
-                raisePropertyChanged propertyName                
+    member __.Value 
+        with get() = value.Value
+        and set(v) = value.Value <- v
+
+    interface IObservable<'a> with
+        member this.Subscribe observer = (value :> IObservable<'a>).Subscribe observer
+
+    interface INotifyingValue<'a> with
+        member this.Value with get() = this.Value and set(v) = this.Value <- v
+
 
 type internal NotifyingValueFuncs<'a> (propertyName, raisePropertyChanged : string -> unit, getter, setter) =
-    inherit NotifyingValue<'a>()
     let propertyName = propertyName
-    override this.Value 
+    let ev = Event<'a>()
+
+    do
+        ev.Publish.Add (fun _ -> raisePropertyChanged propertyName)
+    
+    member this.Value 
         with get() = getter()
         and set(v) = 
             if (not (EqualityComparer<'a>.Default.Equals(getter(), v))) then
                 setter v
-                raisePropertyChanged propertyName
+                ev.Trigger v
+        
+    interface IObservable<'a> with
+        member this.Subscribe observer =
+            let obs = ev.Publish :> IObservable<'a>
+            obs.Subscribe observer
+
+    interface INotifyingValue<'a> with
+        member this.Value with get() = this.Value and set(v) = this.Value <- v
     
 namespace FSharp.ViewModule.Internal
 open System
@@ -130,7 +165,7 @@ type ViewModelUntyped() as self =
         deps |> List.iter (fun prop -> dependencyTracker.AddCommandDependency(cmd, prop)) 
 
     // TODO: This should be set by commands to allow disabling of other commands by default
-    let operationExecuting = NotifyingValueBackingField(getPropertyNameFromExpression(<@ self.OperationExecuting @>), self.RaisePropertyChanged, false, validationTracker, (fun _ -> List.empty)) :> NotifyingValue<bool>
+    let operationExecuting = NotifyingValueBackingField(getPropertyNameFromExpression(<@ self.OperationExecuting @>), self.RaisePropertyChanged, false, validationTracker, (fun _ -> List.empty)) :> INotifyingValue<bool>
 
     // Overridable entity level validation
     abstract member Validate : string -> ValidationResult seq
@@ -190,14 +225,14 @@ type ViewModelUntyped() as self =
     interface IViewModelPropertyFactory with
         member this.Backing (prop : Expr, defaultValue : 'a, validate : ValidationResult<'a> -> ValidationResult<'a>) =
             let validateFun = Validators.validate(getPropertyNameFromExpression(prop)) >> validate >> result
-            NotifyingValueBackingField<'a>(getPropertyNameFromExpression(prop), this.RaisePropertyChanged, defaultValue, validationTracker, validateFun) :> NotifyingValue<'a>
+            NotifyingValueBackingField<'a>(getPropertyNameFromExpression(prop), this.RaisePropertyChanged, defaultValue, validationTracker, validateFun) :> INotifyingValue<'a>
 
         member this.Backing (prop : Expr, defaultValue : 'a, ?validate : 'a -> string list) =
             let validateFun = defaultArg validate (fun _ -> List.empty)
-            NotifyingValueBackingField<'a>(getPropertyNameFromExpression(prop), this.RaisePropertyChanged, defaultValue, validationTracker, validateFun) :> NotifyingValue<'a>
+            NotifyingValueBackingField<'a>(getPropertyNameFromExpression(prop), this.RaisePropertyChanged, defaultValue, validationTracker, validateFun) :> INotifyingValue<'a>
 
         member this.FromFuncs (prop : Expr, getter, setter) =
-            NotifyingValueFuncs<'a>(getPropertyNameFromExpression(prop), this.RaisePropertyChanged, getter, setter) :> NotifyingValue<'a>
+            NotifyingValueFuncs<'a>(getPropertyNameFromExpression(prop), this.RaisePropertyChanged, getter, setter) :> INotifyingValue<'a>
 
         member this.CommandAsync(asyncWorkflow, ?token, ?onCancel) =
             let ct = defaultArg token CancellationToken.None
