@@ -300,17 +300,19 @@ type EventViewModelBase<'a>() =
         let deps : Expr list = defaultArg dependentProperties []
         deps |> List.iter (fun prop -> tracker.AddCommandDependency(cmd, prop)) 
 
-    member this.EventStream = eventStream.Publish :> IObservable<'a>
+    member __.EventStream = eventStream.Publish :> IObservable<'a>
+
+    member __.RaiseEvent = eventStream.Trigger
 
     member this.Factory with get() = this :> IEventViewModelPropertyFactory<'a>
 
     interface IEventViewModelPropertyFactory<'a> with
-        member this.EventValueCommand<'a> value =
-            let execute = fun _ -> eventStream.Trigger(value)
+        member __.EventValueCommand<'a> value =
+            let execute = fun _ -> eventStream.Trigger value
             Commands.createSyncInternal execute (fun _ -> true) :> ICommand
 
-        member this.EventValueCommand<'a,'b> valueFactory =
-            let execute = fun (args:'b) -> eventStream.Trigger(valueFactory(args))
+        member __.EventValueCommand<'a,'b> (valueFactory : 'b -> 'a) =
+            let execute = valueFactory >> eventStream.Trigger 
             Commands.createSyncParamInternal execute (fun _ -> true) :> ICommand
 
         member this.EventValueCommand<'a>() =
