@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2013
-VisualStudioVersion = 12.0.30501.0
+VisualStudioVersion = 12.0.40629.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{1F1B4F0F-2998-4D74-865B-9122611C2B14}"
 	ProjectSection(SolutionItems) = preProject
@@ -34,11 +34,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "content", "content", "{8E6D
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{ED8079DD-2B06-4030-9F0F-DC548F98E1C4}"
 EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "FSharp.ViewModule.MvvmCross", "src\FSharp.ViewModule.MvvmCross\FSharp.ViewModule.MvvmCross.fsproj", "{61CFF60E-A53A-478B-A4C4-D6A4DE70AB10}"
-EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "FSharp.ViewModule.Core", "src\FSharp.ViewModule.Core\FSharp.ViewModule.Core.fsproj", "{BEE71954-6EA6-4FEE-9362-A9233BB9EE0F}"
-EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "FSharp.ViewModule.TypeProvider", "src\FSharp.ViewModule.TypeProvider\FSharp.ViewModule.TypeProvider.fsproj", "{169C282C-76A9-4799-8F16-EA5C07259E82}"
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "FSharp.ViewModule.Core.Wpf", "src\FSharp.ViewModule.Core.Wpf\FSharp.ViewModule.Core.Wpf.fsproj", "{17BAE966-F643-4228-ADA7-050CB179B051}"
 EndProject
@@ -48,18 +44,10 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{61CFF60E-A53A-478B-A4C4-D6A4DE70AB10}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{61CFF60E-A53A-478B-A4C4-D6A4DE70AB10}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{61CFF60E-A53A-478B-A4C4-D6A4DE70AB10}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{61CFF60E-A53A-478B-A4C4-D6A4DE70AB10}.Release|Any CPU.Build.0 = Release|Any CPU
 		{BEE71954-6EA6-4FEE-9362-A9233BB9EE0F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{BEE71954-6EA6-4FEE-9362-A9233BB9EE0F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{BEE71954-6EA6-4FEE-9362-A9233BB9EE0F}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{BEE71954-6EA6-4FEE-9362-A9233BB9EE0F}.Release|Any CPU.Build.0 = Release|Any CPU
-		{169C282C-76A9-4799-8F16-EA5C07259E82}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{169C282C-76A9-4799-8F16-EA5C07259E82}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{169C282C-76A9-4799-8F16-EA5C07259E82}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{169C282C-76A9-4799-8F16-EA5C07259E82}.Release|Any CPU.Build.0 = Release|Any CPU
 		{17BAE966-F643-4228-ADA7-050CB179B051}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{17BAE966-F643-4228-ADA7-050CB179B051}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{17BAE966-F643-4228-ADA7-050CB179B051}.Release|Any CPU.ActiveCfg = Release|Any CPU
