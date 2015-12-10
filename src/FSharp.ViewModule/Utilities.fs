@@ -8,6 +8,9 @@ open Microsoft.FSharp.Quotations.Patterns
 
 open System.Reflection
 
+[<assembly:System.Runtime.CompilerServices.InternalsVisibleTo("FSharp.ViewModule.Tests")>]
+do ()
+
 [<AutoOpen>]
 module internal Utilities =
     let internal castAs<'T when 'T : null> (o:obj) = 
