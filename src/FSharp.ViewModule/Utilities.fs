@@ -8,10 +8,6 @@ open Microsoft.FSharp.Quotations.Patterns
 
 open System.Reflection
 
-[<assembly:AssemblyVersion("0.9.9.2")>]
-[<assembly:AssemblyFileVersion("0.9.9.2")>]
-do()
-
 [<AutoOpen>]
 module internal Utilities =
     let internal castAs<'T when 'T : null> (o:obj) = 
