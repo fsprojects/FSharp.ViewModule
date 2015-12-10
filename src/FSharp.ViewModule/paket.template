@@ -1,0 +1,23 @@
+type project
+owners
+    Reed Copsey, Jr.
+authors 
+    Reed Copsey, Jr.
+projectUrl
+    http://github.com/fsprojects/FSharp.ViewModule
+iconUrl
+    https://raw.githubusercontent.com/fsprojects/FSharp.ViewModule/master/docs/files/img/logo.png
+licenseUrl
+    http://github.com/fsprojects/FSharp.ViewModule/blob/master/LICENSE.txt
+requireLicenseAcceptance
+    false
+copyright
+    Copyright 2015
+tags
+    F# MVVM FSharp INotifyPropertyChanged WPF XamarinForms Perspex
+summary
+    Library providing MVVM and INotifyPropertyChanged support for F# projects
+description
+    Library providing MVVM and INotifyPropertyChanged support for F# projects
+
+

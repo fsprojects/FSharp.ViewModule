@@ -9,6 +9,5 @@ Type provider to generate an MVVM style ViewModel directly from an idiomatic F# 
 ## Maintainer(s)
 
 - [@ReedCopsey](https://github.com/ReedCopsey)
-- [@TIHan](https://github.com/TIHan)
 
 The default maintainer account for projects under "fsprojects" is [@fsprojectsgit](https://github.com/fsprojectsgit) - F# Community Project Incubation Space (repo management)
