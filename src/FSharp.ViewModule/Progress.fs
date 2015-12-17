@@ -1,5 +1,5 @@
 ﻿(*
-Copyright (c) 2013-2014 FSharp.ViewModule Team
+Copyright (c) 2013-2015 FSharp.ViewModule Team
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -65,7 +65,7 @@ type ProgressManager() as self =
 [<AutoOpen>]
 module ProgressReporting =
     let updateProgress (manager : ProgressManager) (state : OperationState) =
-        manager.ProgressReporter.Report(state)
+        manager.ProgressReporter.Report(state)        
 
     let reportProgress (reporter : (OperationState -> unit) option) (state : OperationState) =
         match reporter with

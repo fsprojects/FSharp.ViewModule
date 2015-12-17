@@ -1,5 +1,5 @@
 ﻿(*
-Copyright (c) 2013-2014 FSharp.ViewModule Team
+Copyright (c) 2013-2015 FSharp.ViewModule Team
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -81,8 +81,8 @@ type IEventViewModelPropertyFactory<'a> =
     abstract EventValueCommandChecked<'a> : canExecute:('a -> bool) * ?dependentProperties: Expr list -> INotifyCommand
     abstract EventValueCommandChecked<'a,'b> : valueFactory:('b -> 'a) * canExecute:('b -> bool) * ?dependentProperties: Expr list -> INotifyCommand
 
-type internal NotifyingValueBackingField<'a> (propertyName, raisePropertyChanged : string -> unit, defaultValue : 'a, validationResultPublisher : IValidationTracker, validate : 'a -> string list) =    
-    let value = NotifyingValue<'a>(defaultValue)
+type internal NotifyingValueBackingField<'a> (propertyName, raisePropertyChanged : string -> unit, storage : NotifyingValue<'a>, validationResultPublisher : IValidationTracker, validate : 'a -> string list) =    
+    let value = storage
     
     let updateValidation () =
         validate value.Value
@@ -93,6 +93,9 @@ type internal NotifyingValueBackingField<'a> (propertyName, raisePropertyChanged
         validationResultPublisher.AddPropertyValidationWatcher propertyName updateValidation
         if (SynchronizationContext.Current <> null) then
             SynchronizationContext.Current.Post((fun _ -> validationResultPublisher.Revalidate propertyName), null)
+
+    new(propertyName, raisePropertyChanged : string -> unit, defaultValue : 'a, validationResultPublisher, validate) =
+        NotifyingValueBackingField<'a>(propertyName, raisePropertyChanged, NotifyingValue<_>(defaultValue), validationResultPublisher, validate)
 
     member __.Value 
         with get() = value.Value
@@ -165,7 +168,8 @@ type ViewModelUntyped() as self =
         deps |> List.iter (fun prop -> dependencyTracker.AddCommandDependency(cmd, prop)) 
 
     // TODO: This should be set by commands to allow disabling of other commands by default
-    let operationExecuting = NotifyingValueBackingField(getPropertyNameFromExpression(<@ self.OperationExecuting @>), self.RaisePropertyChanged, false, validationTracker, (fun _ -> List.empty)) :> INotifyingValue<bool>
+    let propChanged : string -> unit = self.RaisePropertyChanged
+    let operationExecuting = NotifyingValueBackingField(getPropertyNameFromExpression(<@ self.OperationExecuting @>), propChanged, false, validationTracker, (fun _ -> List.empty)) :> INotifyingValue<bool>
 
     // Overridable entity level validation
     abstract member Validate : string -> ValidationResult seq
@@ -225,14 +229,14 @@ type ViewModelUntyped() as self =
     interface IViewModelPropertyFactory with
         member this.Backing (prop : Expr, defaultValue : 'a, validate : ValidationResult<'a> -> ValidationResult<'a>) =
             let validateFun = Validators.validate(getPropertyNameFromExpression(prop)) >> validate >> result
-            NotifyingValueBackingField<'a>(getPropertyNameFromExpression(prop), this.RaisePropertyChanged, defaultValue, validationTracker, validateFun) :> INotifyingValue<'a>
+            NotifyingValueBackingField<'a>(getPropertyNameFromExpression(prop), propChanged, defaultValue, validationTracker, validateFun) :> INotifyingValue<'a>
 
         member this.Backing (prop : Expr, defaultValue : 'a, ?validate : 'a -> string list) =
             let validateFun = defaultArg validate (fun _ -> List.empty)
-            NotifyingValueBackingField<'a>(getPropertyNameFromExpression(prop), this.RaisePropertyChanged, defaultValue, validationTracker, validateFun) :> INotifyingValue<'a>
+            NotifyingValueBackingField<'a>(getPropertyNameFromExpression(prop), propChanged, defaultValue, validationTracker, validateFun) :> INotifyingValue<'a>
 
         member this.FromFuncs (prop : Expr, getter, setter) =
-            NotifyingValueFuncs<'a>(getPropertyNameFromExpression(prop), this.RaisePropertyChanged, getter, setter) :> INotifyingValue<'a>
+            NotifyingValueFuncs<'a>(getPropertyNameFromExpression(prop), propChanged, getter, setter) :> INotifyingValue<'a>
 
         member this.CommandAsync(asyncWorkflow, ?token, ?onCancel) =
             let ct = defaultArg token CancellationToken.None
@@ -278,62 +282,3 @@ type ViewModelUntyped() as self =
             addCommandDependencies cmd dependentProperties
             cmd
 
-namespace FSharp.ViewModule
-
-open System
-open System.Windows.Input
-open Microsoft.FSharp.Quotations
-
-[<AbstractClass>]
-type ViewModelBase() =
-    inherit FSharp.ViewModule.Internal.ViewModelUntyped()
-
-    member this.Factory with get() = this :> IViewModelPropertyFactory
-
-[<AbstractClass>]
-type EventViewModelBase<'a>() =
-    inherit FSharp.ViewModule.Internal.ViewModelUntyped()
-    
-    let eventStream = Event<'a>()
-
-    let addCommandDependencies cmd dependentProperties (tracker : IDependencyTracker) =
-        let deps : Expr list = defaultArg dependentProperties []
-        deps |> List.iter (fun prop -> tracker.AddCommandDependency(cmd, prop)) 
-
-    member __.EventStream = eventStream.Publish :> IObservable<'a>
-
-    member __.RaiseEvent = eventStream.Trigger
-
-    member this.Factory with get() = this :> IEventViewModelPropertyFactory<'a>
-
-    interface IEventViewModelPropertyFactory<'a> with
-        member __.EventValueCommand<'a> value =
-            let execute = fun _ -> eventStream.Trigger value
-            Commands.createSyncInternal execute (fun _ -> true) :> ICommand
-
-        member __.EventValueCommand<'a,'b> (valueFactory : 'b -> 'a) =
-            let execute = valueFactory >> eventStream.Trigger 
-            Commands.createSyncParamInternal execute (fun _ -> true) :> ICommand
-
-        member this.EventValueCommand<'a>() =
-            let execute = fun (args:'a) -> eventStream.Trigger(args)
-            Commands.createSyncParamInternal execute (fun _ -> true) :> ICommand
-
-        member this.EventValueCommandChecked<'a>(value, canExecute, ?dependentProperties) =
-            let execute = fun _ -> eventStream.Trigger(value)
-            let cmd = Commands.createSyncInternal execute canExecute
-            addCommandDependencies cmd dependentProperties this.DependencyTracker
-            cmd
-
-        member this.EventValueCommandChecked<'a>(canExecute, ?dependentProperties) =
-            let execute = fun (args:'a) -> eventStream.Trigger(args)
-            let cmd = Commands.createSyncParamInternal execute canExecute
-            addCommandDependencies cmd dependentProperties this.DependencyTracker
-            cmd
-
-        member this.EventValueCommandChecked<'a,'b>(valueFactory, canExecute, ?dependentProperties) =
-            let execute = fun (args:'b) -> eventStream.Trigger(valueFactory(args))
-            let cmd = Commands.createSyncParamInternal execute canExecute
-            addCommandDependencies cmd dependentProperties this.DependencyTracker
-            cmd
-        

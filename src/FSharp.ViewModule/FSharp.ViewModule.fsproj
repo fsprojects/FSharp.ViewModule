@@ -51,6 +51,8 @@
     <Compile Include="FunCommand.fs" />
     <Compile Include="Validation.fs" />
     <Compile Include="MVVM.fs" />
+    <Compile Include="ViewModelBase.fs" />
+    <Compile Include="EventViewModelBase.fs" />
     <Compile Include="Progress.fs" />
     <Compile Include="AssemblyInfo.fs" />
   </ItemGroup>
