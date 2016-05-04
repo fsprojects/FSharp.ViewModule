@@ -232,7 +232,7 @@ type ViewModelUntyped() as self =
             NotifyingValueBackingField<'a>(getPropertyNameFromExpression(prop), propChanged, defaultValue, validationTracker, validateFun) :> INotifyingValue<'a>
 
         member this.Backing (prop : Expr, defaultValue : 'a, ?validate : 'a -> string list) =
-            let validateFun = defaultArg validate (fun _ -> List.empty)
+            let validateFun = defaultArg validate (fun _ -> [])
             NotifyingValueBackingField<'a>(getPropertyNameFromExpression(prop), propChanged, defaultValue, validationTracker, validateFun) :> INotifyingValue<'a>
 
         member this.FromFuncs (prop : Expr, getter, setter) =
@@ -240,27 +240,35 @@ type ViewModelUntyped() as self =
 
         member this.CommandAsync(asyncWorkflow, ?token, ?onCancel) =
             let ct = defaultArg token CancellationToken.None
-            let oc = defaultArg onCancel (fun e -> ())
+            let oc = defaultArg onCancel ignore
             let cmd = Commands.createAsyncInternal asyncWorkflow getExecuting setExecuting (fun () -> true) ct oc
+            let opEx = Some [ <@@ this.OperationExecuting @@> ]
+            addCommandDependencies cmd opEx
             cmd
 
         member this.CommandAsyncChecked(asyncWorkflow, canExecute, ?dependentProperties: Expr list, ?token, ?onCancel) =
             let ct = defaultArg token CancellationToken.None
-            let oc = defaultArg onCancel (fun e -> ())
+            let oc = defaultArg onCancel ignore
             let cmd = Commands.createAsyncInternal asyncWorkflow getExecuting setExecuting canExecute ct oc
+            let opEx = Some [ <@@ this.OperationExecuting @@> ]
+            addCommandDependencies cmd opEx
             addCommandDependencies cmd dependentProperties
             cmd
 
         member this.CommandAsyncParam(asyncWorkflow, ?token, ?onCancel) =
             let ct = defaultArg token CancellationToken.None
-            let oc = defaultArg onCancel (fun e -> ())
+            let oc = defaultArg onCancel ignore
             let cmd = Commands.createAsyncParamInternal asyncWorkflow getExecuting setExecuting (fun _ -> true) ct oc
+            let opEx = Some [ <@@ this.OperationExecuting @@> ]
+            addCommandDependencies cmd opEx
             cmd
 
         member this.CommandAsyncParamChecked(asyncWorkflow, canExecute, ?dependentProperties: Expr list, ?token, ?onCancel) =
             let ct = defaultArg token CancellationToken.None
-            let oc = defaultArg onCancel (fun e -> ())
+            let oc = defaultArg onCancel ignore
             let cmd = Commands.createAsyncParamInternal asyncWorkflow getExecuting setExecuting canExecute ct oc
+            let opEx = Some [ <@@ this.OperationExecuting @@> ]
+            addCommandDependencies cmd opEx
             addCommandDependencies cmd dependentProperties
             cmd
 

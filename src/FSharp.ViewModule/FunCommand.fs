@@ -116,8 +116,9 @@ module internal Commands =
         // This will cause the command to requery the CanExecute method after everything's loaded, which will then pass onto the user's canExecute function.
         // The first time things are loaded, since null will be passed, None will go through, and the method won't execute
         // Note that we only do this if loaded in a sync context that's current, so we can post back safely
-        if SynchronizationContext.Current <> null then
-            SynchronizationContext.Current.Post((fun _ -> result.RaiseCanExecuteChanged()), null)
+        match SynchronizationContext.Current with
+        | null -> ()
+        | sc   -> sc.Post((fun _ -> result.RaiseCanExecuteChanged()), null)
 
         result
 
