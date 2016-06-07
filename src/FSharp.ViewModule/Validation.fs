@@ -107,19 +107,19 @@ module Validators =
         custom validation step
 
     let greaterThan value step =
-        let validation v = if v > value v then None else Some ("{0} must be greater than " + value.ToString())
+        let validation v = if v > value then None else Some ("{0} must be greater than " + value.ToString())
         custom validation step
 
     let greaterOrEqualTo value step =
-        let validation v = if v >= value v then None else Some ("{0} must be greater than or equal to " + value.ToString())
+        let validation v = if v >= value then None else Some ("{0} must be greater than or equal to " + value.ToString())
         custom validation step
 
     let lessThan value step =
-        let validation v = if v < value v then None else Some ("{0} must be less than " + value.ToString())
+        let validation v = if v < value then None else Some ("{0} must be less than " + value.ToString())
         custom validation step
 
     let lessOrEqualTo value step =
-        let validation v = if v <= value v then None else Some ("{0} must be less than or equal to " + value.ToString())
+        let validation v = if v <= value then None else Some ("{0} must be less than or equal to " + value.ToString())
         custom validation step
 
     let isBetween lowerBound upperBound step =
