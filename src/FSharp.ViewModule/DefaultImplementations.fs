@@ -199,18 +199,7 @@ type DependencyTracker(raisePropertyChanged : string -> unit, propertyChanged : 
             commandTracking.Add(propertyName, [command])
 
     let addDependentCommandCSharp propertyName (command : CSharp.ViewModule.INotifyCommand) =
-        let command' =
-            { new INotifyCommand with 
-                [<CLIEvent>] member x.CanExecuteChanged = command.CanExecuteChanged
-                member x.RaiseCanExecuteChanged () = command.RaiseCanExecuteChanged ()
-                member x.CanExecute param = command.CanExecute param
-                member x.Execute param = command.Execute param }
-
-        if (commandTracking.ContainsKey(propertyName)) then
-            let existing = commandTracking.[propertyName]
-            commandTracking.[propertyName] <- command' :: existing
-        else
-            commandTracking.Add(propertyName, [command'])
+        addDependentCommand propertyName (command :> INotifyCommand)
 
     let addDependentProperty propertyName dependency =
         if (propertyTracking.ContainsKey(dependency)) then

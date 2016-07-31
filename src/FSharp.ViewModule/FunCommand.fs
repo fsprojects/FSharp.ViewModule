@@ -82,15 +82,12 @@ type FunCommand (execute : obj -> unit, canExecute, token) =
         member this.RaiseCanExecuteChanged() =
             canExecuteChanged.Trigger(this, EventArgs.Empty)
 
-    interface CSharp.ViewModule.INotifyCommand with
-        member this.RaiseCanExecuteChanged() =
-            canExecuteChanged.Trigger(this, EventArgs.Empty)
+    interface CSharp.ViewModule.INotifyCommand
 
     interface IAsyncNotifyCommand with
         member this.CancellationToken with get() = this.cancellationToken and set(v) = this.cancellationToken <- v
 
-    interface CSharp.ViewModule.IAsyncNotifyCommand with
-        member this.CancellationToken with get() = this.cancellationToken and set(v) = this.cancellationToken <- v
+    interface CSharp.ViewModule.IAsyncNotifyCommand
 
 /// Module containing Command factory methods to create ICommand implementations
 module internal Commands =

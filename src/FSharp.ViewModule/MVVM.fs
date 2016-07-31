@@ -278,9 +278,7 @@ type ViewModelUntyped() as self =
         member this.RaisePropertyChanged(propertyName: string) =
             this.RaisePropertyChanged(propertyName)
 
-    interface CSharp.ViewModule.IRaisePropertyChanged with
-        member this.RaisePropertyChanged(propertyName: string) =
-            this.RaisePropertyChanged(propertyName)
+    interface CSharp.ViewModule.IRaisePropertyChanged
 
     interface INotifyDataErrorInfo with
         member this.GetErrors propertyName = 

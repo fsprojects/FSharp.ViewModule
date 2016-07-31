@@ -92,23 +92,14 @@ open System.ComponentModel
 open System.Windows.Input
 
 /// Extension of ICommand with a public method to fire the CanExecuteChanged event.
-type INotifyCommand =
-    inherit ICommand 
-    
-    /// Trigger the CanExecuteChanged event for this specific ICommand.
-    abstract RaiseCanExecuteChanged : unit -> unit
+type INotifyCommand = inherit FSharp.ViewModule.INotifyCommand
 
 /// Extension of INotifyCommand with a public property to supply a CancellationToken.
-type IAsyncNotifyCommand =
-    inherit INotifyCommand
-
-    abstract member CancellationToken : System.Threading.CancellationToken with get, set
+type IAsyncNotifyCommand = inherit FSharp.ViewModule.IAsyncNotifyCommand
 
 /// Interface used to explicitly raise PropertyChanged.
-type IRaisePropertyChanged =
-    inherit INotifyPropertyChanged
+type IRaisePropertyChanged = inherit FSharp.ViewModule.IRaisePropertyChanged
 
-    abstract RaisePropertyChanged : propertyName : string -> unit
 type IDependencyTracker = 
     abstract AddPropertyDependencies : property : Expression<Func<obj>> * [<ParamArray>] dependencies : Expression<Func<obj>> array -> unit
     abstract AddPropertyDependencies : property : string * [<ParamArray>] dependencies: string array -> unit
