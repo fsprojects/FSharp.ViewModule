@@ -20,6 +20,7 @@ open System
 open System.ComponentModel
 open System.Collections.Generic
 open System.Threading
+open System.Linq.Expressions
 
 open Microsoft.FSharp.Quotations
 open Microsoft.FSharp.Quotations.Patterns
@@ -229,3 +230,21 @@ type DependencyTracker(raisePropertyChanged : string -> unit, propertyChanged : 
         member this.AddCommandDependency (command : INotifyCommand, expr) = addDependentCommand (getPropertyNameFromExpression expr) command
 
         member this.AddCommandDependency (command : INotifyCommand, name) = addDependentCommand name command
+
+    interface CSharp.ViewModule.IDependencyTracker with
+        member this.AddPropertyDependencies (property : string, [<ParamArray>] dependencies : string array) =
+            addDependentProperties property (List.ofArray dependencies)
+
+        member this.AddPropertyDependencies (property : Expression<Func<obj>>, [<ParamArray>] dependencies : Expression<Func<obj>> array) =
+            let dependents = dependencies |> Array.map getPropertyNameFromLinqExpression |> List.ofArray
+            addDependentProperties (getPropertyNameFromLinqExpression property) dependents
+
+        member this.AddPropertyDependency (property : string, dependency : string) = addDependentProperty property dependency
+
+        member this.AddPropertyDependency (property : Expression<Func<obj>>, dependency : Expression<Func<obj>>) =
+             addDependentProperty (getPropertyNameFromLinqExpression property) (getPropertyNameFromLinqExpression dependency)
+
+        member this.AddCommandDependency (command : INotifyCommand, dependency : string) = addDependentCommand dependency command
+
+        member this.AddCommandDependency (command : INotifyCommand, dependency : Expression<Func<obj>>) =
+            addDependentCommand (getPropertyNameFromLinqExpression dependency) command

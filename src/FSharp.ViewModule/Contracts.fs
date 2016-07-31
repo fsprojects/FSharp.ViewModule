@@ -40,7 +40,7 @@ type IAsyncNotifyCommand =
 type IRaisePropertyChanged =
     inherit INotifyPropertyChanged
 
-    abstract RaisePropertyChanged : string -> unit
+    abstract RaisePropertyChanged : propertyName : string -> unit
 
 /// Results of a validation for the member of a type or an entity.  errorKey is a string identifier unique per "error case"
 type ValidationResult =
@@ -81,4 +81,34 @@ type IViewModel =
 
     /// Handles management of dependencies for all computed properties 
     /// as well as ICommand dependencies
+    abstract DependencyTracker : IDependencyTracker
+
+namespace CSharp.ViewModule
+
+open System
+open System.Linq.Expressions
+
+open System.ComponentModel
+open System.Windows.Input
+
+type INotifyCommand = FSharp.ViewModule.INotifyCommand
+type IAsyncNotifyCommand = FSharp.ViewModule.IAsyncNotifyCommand
+type IRaisePropertyChanged = FSharp.ViewModule.IRaisePropertyChanged
+
+type IDependencyTracker = 
+    abstract AddPropertyDependencies : property : Expression<Func<obj>> * [<ParamArray>] dependencies : Expression<Func<obj>> array -> unit
+    abstract AddPropertyDependencies : property : string * [<ParamArray>] dependencies: string array -> unit
+    abstract AddPropertyDependency : property: Expression<Func<obj>> * dependency : Expression<Func<obj>> -> unit
+    abstract AddPropertyDependency : property : string * dependency : string -> unit
+
+    abstract AddCommandDependency : command : INotifyCommand * dependency : Expression<Func<obj>> -> unit
+    abstract AddCommandDependency : command : INotifyCommand * dependency : string -> unit
+
+type IViewModel =
+    inherit INotifyPropertyChanged
+    inherit IRaisePropertyChanged
+    inherit INotifyDataErrorInfo
+
+    abstract OperationExecuting : bool with get, set
+
     abstract DependencyTracker : IDependencyTracker

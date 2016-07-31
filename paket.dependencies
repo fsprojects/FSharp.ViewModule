@@ -1,5 +1,6 @@
 source https://nuget.org/api/v2
 
+nuget FSharp.Core redirects: force
 nuget FSharp.Formatting
 nuget NUnit ~> 2
 nuget NUnit.Runners ~> 2

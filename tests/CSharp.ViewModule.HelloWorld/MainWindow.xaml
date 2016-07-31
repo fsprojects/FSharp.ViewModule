@@ -1,0 +1,25 @@
+﻿<Window x:Class="CSharp.ViewModule.HelloWorld.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:CSharp.ViewModule.HelloWorld"
+        mc:Ignorable="d"
+        Title="MainWindow" Height="60" Width="250">
+    <Window.DataContext>
+        <local:HelloWorldViewModel />
+    </Window.DataContext>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition />
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition />
+            <ColumnDefinition Width="80" />
+        </Grid.ColumnDefinitions>
+
+        <TextBox Grid.Row="0" Grid.Column="0" Text="{Binding Name}" />
+        <Button Grid.Row="0" Grid.Column="1" Content="Say hello" Command="{Binding SayHello}"/>
+    </Grid>
+</Window>

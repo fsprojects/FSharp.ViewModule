@@ -22,3 +22,11 @@ type ViewModelBase() =
 
     member this.Factory with get() = this :> IViewModelPropertyFactory
 
+namespace CSharp.ViewModule
+
+[<AbstractClass>]
+type ViewModelBase() =
+    inherit FSharp.ViewModule.Internal.ViewModelUntyped()
+
+    member this.DependencyTracker with get() = this.DependencyTrackerInternal :> IDependencyTracker
+    member this.Factory with get() = this :> IViewModelPropertyFactory

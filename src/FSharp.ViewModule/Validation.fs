@@ -148,3 +148,8 @@ module Validators =
 
     let evaluate value (workflow : 'a -> string list) =
         workflow(value)
+
+
+namespace CSharp.ViewModule.Validation
+
+type ValidationResult<'a> = FSharp.ViewModule.Validation.ValidationResult<'a>

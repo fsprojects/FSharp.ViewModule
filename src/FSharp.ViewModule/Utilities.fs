@@ -6,6 +6,7 @@ open System.IO
 open Microsoft.FSharp.Quotations
 open Microsoft.FSharp.Quotations.Patterns
 
+open System.Linq.Expressions
 open System.Reflection
 
 [<assembly:System.Runtime.CompilerServices.InternalsVisibleTo("FSharp.ViewModule.Tests")>]
@@ -28,6 +29,14 @@ module internal Utilities =
         | PropertyGet(a, pi, list) -> pi.Name
         | _ -> ""
 
+    let rec getPropertyNameFromLinqExpression (linqExpr : Expression) =
+        match linqExpr with
+        | :? LambdaExpression as l -> getPropertyNameFromLinqExpression l.Body
+        | :? MemberExpression as m ->
+            match m.Member with
+            | :? PropertyInfo as p -> p.Name
+            | _ -> ""
+        | _ -> ""
 
 module public Helpers =
     let getPropertyNameFromExpression(expr : Expr) =
