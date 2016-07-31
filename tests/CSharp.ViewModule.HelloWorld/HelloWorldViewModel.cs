@@ -1,5 +1,4 @@
-﻿using FSharp.ViewModule;
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Input;
 
 namespace CSharp.ViewModule.HelloWorld

@@ -14,6 +14,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 *)
 
+namespace CSharp.ViewModule
+
+/// Encapsulation of a value which handles raising property changed automatically in a clean manner
+type public INotifyingValue<'a> =
+    inherit System.IObservable<'a>
+    /// Extracts the current value from the backing storage
+    abstract member Value : 'a with get, set
+
 namespace FSharp.ViewModule
 
 open System
@@ -54,6 +62,9 @@ type public NotifyingValue<'a>(defaultValue) =
 
     interface INotifyingValue<'a> with
         member this.Value with get() = this.Value and set(v) = this.Value <- v    
+
+    interface CSharp.ViewModule.INotifyingValue<'a> with
+        member this.Value with get() = this.Value and set(v) = this.Value <- v
 
 type IViewModelPropertyFactory =
     abstract Backing<'a> : prop:Expr * defaultValue:'a * validate:(ValidationResult<'a> -> ValidationResult<'a>) -> INotifyingValue<'a>
@@ -107,6 +118,9 @@ type internal NotifyingValueBackingField<'a> (propertyName, raisePropertyChanged
     interface INotifyingValue<'a> with
         member this.Value with get() = this.Value and set(v) = this.Value <- v
 
+    interface CSharp.ViewModule.INotifyingValue<'a> with
+        member this.Value with get() = this.Value and set(v) = this.Value <- v
+
 
 type internal NotifyingValueFuncs<'a> (propertyName, raisePropertyChanged : string -> unit, getter, setter) =
     let propertyName = propertyName
@@ -130,6 +144,9 @@ type internal NotifyingValueFuncs<'a> (propertyName, raisePropertyChanged : stri
     interface INotifyingValue<'a> with
         member this.Value with get() = this.Value and set(v) = this.Value <- v
 
+    interface CSharp.ViewModule.INotifyingValue<'a> with
+        member this.Value with get() = this.Value and set(v) = this.Value <- v
+
 namespace CSharp.ViewModule
 
 open System
@@ -141,15 +158,13 @@ open System.Linq.Expressions
 
 open CSharp.ViewModule.Validation
 
-type INotifyingValue<'a> = FSharp.ViewModule.INotifyingValue<'a>
-
 type IViewModelPropertyFactory =
-    abstract Backing<'a> : property : Expression<Func<'a>> * defaultValue:'a * validate : Func<ValidationResult<'a>, ValidationResult<'a>> -> INotifyingValue<'a>
-    abstract Backing<'a> : property : string * defaultValue:'a * validate : Func<ValidationResult<'a>, ValidationResult<'a>> -> INotifyingValue<'a>
-    abstract Backing<'a> : property : Expression<Func<'a>> * defaultValue:'a * [<Optional>] validate: Func<'a, string seq> -> INotifyingValue<'a>
-    abstract Backing<'a> : property : string * defaultValue:'a * [<Optional>] validate: Func<'a, string seq> -> INotifyingValue<'a>
-    abstract FromFuncs<'a> : property : Expression<Func<'a>> * getter : Func<'a> * setter: Action<'a> -> INotifyingValue<'a>
-    abstract FromFuncs<'a> : property : string * getter : Func<'a> * setter: Action<'a> -> INotifyingValue<'a>
+    abstract Backing<'a> : property : Expression<Func<'a>> * defaultValue:'a * validate : Func<ValidationResult<'a>, ValidationResult<'a>> -> CSharp.ViewModule.INotifyingValue<'a>
+    abstract Backing<'a> : property : string * defaultValue:'a * validate : Func<ValidationResult<'a>, ValidationResult<'a>> -> CSharp.ViewModule.INotifyingValue<'a>
+    abstract Backing<'a> : property : Expression<Func<'a>> * defaultValue:'a * [<Optional>] validate: Func<'a, string seq> -> CSharp.ViewModule.INotifyingValue<'a>
+    abstract Backing<'a> : property : string * defaultValue:'a * [<Optional>] validate: Func<'a, string seq> -> CSharp.ViewModule.INotifyingValue<'a>
+    abstract FromFuncs<'a> : property : Expression<Func<'a>> * getter : Func<'a> * setter: Action<'a> -> CSharp.ViewModule.INotifyingValue<'a>
+    abstract FromFuncs<'a> : property : string * getter : Func<'a> * setter: Action<'a> -> CSharp.ViewModule.INotifyingValue<'a>
 
     abstract CommandAsync : createTask : Func<SynchronizationContext, Task> * [<Optional>] token : CancellationToken * [<Optional>] onCancel : Action<OperationCanceledException> -> IAsyncNotifyCommand
     abstract CommandAsyncChecked : createTask : Func<SynchronizationContext, Task> * canExecute: Func<bool> * [<ParamArray>] dependentProperties : Expression<Func<obj>> array -> IAsyncNotifyCommand
@@ -263,6 +278,10 @@ type ViewModelUntyped() as self =
         member this.RaisePropertyChanged(propertyName: string) =
             this.RaisePropertyChanged(propertyName)
 
+    interface CSharp.ViewModule.IRaisePropertyChanged with
+        member this.RaisePropertyChanged(propertyName: string) =
+            this.RaisePropertyChanged(propertyName)
+
     interface INotifyDataErrorInfo with
         member this.GetErrors propertyName = 
             errorTracker.GetErrors(propertyName) :> System.Collections.IEnumerable
@@ -349,40 +368,40 @@ type ViewModelUntyped() as self =
     interface CSharp.ViewModule.IViewModelPropertyFactory with
         member this.Backing<'a> (property : string, defaultValue : 'a, validate : Func<ValidationResult<'a>, ValidationResult<'a>>) =
             let validateFun = Validators.validate property >> validate.Invoke >> result
-            NotifyingValueBackingField<'a>(property, propChanged, defaultValue, validationTracker, validateFun) :> INotifyingValue<'a>
+            NotifyingValueBackingField<'a>(property, propChanged, defaultValue, validationTracker, validateFun) :> CSharp.ViewModule.INotifyingValue<'a>
 
         member this.Backing<'a> (property : Expression<Func<'a>>, defaultValue : 'a, validate : Func<ValidationResult<'a>, ValidationResult<'a>>) =
             let name = getPropertyNameFromLinqExpression property
             let validateFun = Validators.validate name >> validate.Invoke >> result
-            NotifyingValueBackingField<'a>(name, propChanged, defaultValue, validationTracker, validateFun) :> INotifyingValue<'a>
+            NotifyingValueBackingField<'a>(name, propChanged, defaultValue, validationTracker, validateFun) :> CSharp.ViewModule.INotifyingValue<'a>
 
         member this.Backing<'a> (property : string, defaultValue : 'a, [<Optional>] validate : Func<'a, string seq>) =
             let validateFun = if validate <> null then validate.Invoke >> List.ofSeq else (fun _ -> [])
-            NotifyingValueBackingField<'a>(property, propChanged, defaultValue, validationTracker, validateFun) :> INotifyingValue<'a>
+            NotifyingValueBackingField<'a>(property, propChanged, defaultValue, validationTracker, validateFun) :> CSharp.ViewModule.INotifyingValue<'a>
 
         member this.Backing<'a> (property : Expression<Func<'a>>, defaultValue : 'a, [<Optional>] validate : Func<'a, string seq>) =
             let validateFun = if validate <> null then validate.Invoke >> List.ofSeq else (fun _ -> [])
-            NotifyingValueBackingField<'a>(getPropertyNameFromLinqExpression property, propChanged, defaultValue, validationTracker, validateFun) :> INotifyingValue<'a>
+            NotifyingValueBackingField<'a>(getPropertyNameFromLinqExpression property, propChanged, defaultValue, validationTracker, validateFun) :> CSharp.ViewModule.INotifyingValue<'a>
 
         member this.FromFuncs<'a> (property : string, getter : Func<'a>, setter : Action<'a>) =
-            NotifyingValueFuncs<'a>(property, propChanged, getter.Invoke, setter.Invoke) :> INotifyingValue<'a>
+            NotifyingValueFuncs<'a>(property, propChanged, getter.Invoke, setter.Invoke) :> CSharp.ViewModule.INotifyingValue<'a>
 
         member this.FromFuncs<'a> (property : Expression<Func<'a>>, getter : Func<'a>, setter : Action<'a>) =
-            NotifyingValueFuncs<'a>(getPropertyNameFromLinqExpression property, propChanged, getter.Invoke, setter.Invoke) :> INotifyingValue<'a>
+            NotifyingValueFuncs<'a>(getPropertyNameFromLinqExpression property, propChanged, getter.Invoke, setter.Invoke) :> CSharp.ViewModule.INotifyingValue<'a>
 
         member this.CommandAsync (createTask : Func<SynchronizationContext, Task>, [<Optional>] token : CancellationToken, [<Optional>] onCancel : Action<OperationCanceledException>) =
             let oc = if onCancel <> null then onCancel.Invoke else ignore
             let cmd = Commands.createAsyncInternal (asyncFromTask createTask) getExecuting setExecuting (fun () -> true) token oc
             let opEx = Some [ <@@ this.OperationExecuting @@> ]
             addCommandDependencies cmd opEx
-            cmd
+            cmd :?> CSharp.ViewModule.IAsyncNotifyCommand
         
         member this.CommandAsyncChecked (createTask : Func<SynchronizationContext, Task>, canExecute : Func<bool>, token : CancellationToken, onCancel : Action<OperationCanceledException>, [<ParamArray>] dependentProperties : Expression<Func<obj>> array) =
             let cmd = Commands.createAsyncInternal (asyncFromTask createTask) getExecuting setExecuting canExecute.Invoke token onCancel.Invoke
             let opEx = Some [ <@@ this.OperationExecuting @@> ]
             addCommandDependencies cmd opEx
             addCommandDependenciesLinq cmd dependentProperties
-            cmd
+            cmd :?> CSharp.ViewModule.IAsyncNotifyCommand
         
         member this.CommandAsyncChecked (createTask : Func<SynchronizationContext, Task>, canExecute : Func<bool>, token : CancellationToken, [<ParamArray>] dependentProperties : Expression<Func<obj>> array) =
             (this :> CSharp.ViewModule.IViewModelPropertyFactory).CommandAsyncChecked(createTask, canExecute, token, ignore, dependentProperties)
@@ -395,7 +414,7 @@ type ViewModelUntyped() as self =
             let opEx = Some [ <@@ this.OperationExecuting @@> ]
             addCommandDependencies cmd opEx
             addCommandDependenciesString cmd dependentProperties
-            cmd
+            cmd :?> CSharp.ViewModule.IAsyncNotifyCommand
 
         member this.CommandAsyncChecked (createTask : Func<SynchronizationContext, Task>, canExecute : Func<bool>, token : CancellationToken, [<ParamArray>] dependentProperties : string array) =
             (this :> CSharp.ViewModule.IViewModelPropertyFactory).CommandAsyncChecked(createTask, canExecute, token, ignore, dependentProperties)
@@ -408,14 +427,14 @@ type ViewModelUntyped() as self =
             let cmd = Commands.createAsyncParamInternal (asyncFromTaskParam createTask) getExecuting setExecuting (fun _ -> true) token oc
             let opEx = Some [ <@@ this.OperationExecuting @@> ]
             addCommandDependencies cmd opEx
-            cmd
+            cmd :?> CSharp.ViewModule.IAsyncNotifyCommand
 
         member this.CommandAsyncParamChecked<'a> (createTask : Func<SynchronizationContext, 'a, Task>, canExecute : Func<'a, bool>, token : CancellationToken, onCancel : Action<OperationCanceledException>, [<ParamArray>] dependentProperties : Expression<Func<obj>> array) =
             let cmd = Commands.createAsyncParamInternal (asyncFromTaskParam createTask) getExecuting setExecuting canExecute.Invoke token onCancel.Invoke
             let opEx = Some [ <@@ this.OperationExecuting @@> ]
             addCommandDependencies cmd opEx
             addCommandDependenciesLinq cmd dependentProperties
-            cmd
+            cmd :?> CSharp.ViewModule.IAsyncNotifyCommand
 
         member this.CommandAsyncParamChecked<'a> (createTask : Func<SynchronizationContext, 'a, Task>, canExecute : Func<'a, bool>, token : CancellationToken, [<ParamArray>] dependentProperties : Expression<Func<obj>> array) =
             (this :> CSharp.ViewModule.IViewModelPropertyFactory).CommandAsyncParamChecked(createTask, canExecute, token, ignore, dependentProperties)
@@ -428,7 +447,7 @@ type ViewModelUntyped() as self =
             let opEx = Some [ <@@ this.OperationExecuting @@> ]
             addCommandDependencies cmd opEx
             addCommandDependenciesString cmd dependentProperties
-            cmd
+            cmd :?> CSharp.ViewModule.IAsyncNotifyCommand
 
         member this.CommandAsyncParamChecked<'a> (createTask : Func<SynchronizationContext, 'a, Task>, canExecute : Func<'a, bool>, token : CancellationToken, [<ParamArray>] dependentProperties : string array) =
             (this :> CSharp.ViewModule.IViewModelPropertyFactory).CommandAsyncParamChecked(createTask, canExecute, token, ignore, dependentProperties)
@@ -436,26 +455,26 @@ type ViewModelUntyped() as self =
         member this.CommandAsyncParamChecked<'a> (createTask : Func<SynchronizationContext, 'a, Task>, canExecute : Func<'a, bool>, [<ParamArray>] dependentProperties : string array) =
             (this :> CSharp.ViewModule.IViewModelPropertyFactory).CommandAsyncParamChecked(createTask, canExecute, CancellationToken.None, dependentProperties)
 
-        member this.CommandSync (execute : Action) = Commands.createSyncInternal execute.Invoke (fun () -> true)
+        member this.CommandSync (execute : Action) = Commands.createSyncInternal execute.Invoke (fun () -> true) :?> CSharp.ViewModule.INotifyCommand
 
-        member this.CommandSyncParam<'a> (execute : Action<'a>) =  Commands.createSyncParamInternal execute.Invoke (fun _ -> true)
+        member this.CommandSyncParam<'a> (execute : Action<'a>) =  Commands.createSyncParamInternal execute.Invoke (fun _ -> true) :?> CSharp.ViewModule.INotifyCommand
 
         member this.CommandSyncChecked (execute : Action, canExecute : Func<bool>, [<ParamArray>] dependentProperties : Expression<Func<obj>> array) =
             let cmd = Commands.createSyncInternal execute.Invoke canExecute.Invoke
             addCommandDependenciesLinq cmd dependentProperties
-            cmd
+            cmd :?> CSharp.ViewModule.INotifyCommand
 
         member this.CommandSyncChecked (execute : Action, canExecute : Func<bool>, [<ParamArray>] dependentProperties : string array) =
             let cmd = Commands.createSyncInternal execute.Invoke canExecute.Invoke
             addCommandDependenciesString cmd dependentProperties
-            cmd
+            cmd :?> CSharp.ViewModule.INotifyCommand
 
         member this.CommandSyncParamChecked<'a> (execute : Action<'a>, canExecute : Func<'a, bool>, [<ParamArray>] dependentProperties : Expression<Func<obj>> array) =
             let cmd = Commands.createSyncParamInternal execute.Invoke canExecute.Invoke
             addCommandDependenciesLinq cmd dependentProperties
-            cmd
+            cmd :?> CSharp.ViewModule.INotifyCommand
 
         member this.CommandSyncParamChecked<'a> (execute : Action<'a>, canExecute : Func<'a, bool>, [<ParamArray>] dependentProperties : string array) =
             let cmd = Commands.createSyncParamInternal execute.Invoke canExecute.Invoke
             addCommandDependenciesString cmd dependentProperties
-            cmd
+            cmd :?> CSharp.ViewModule.INotifyCommand

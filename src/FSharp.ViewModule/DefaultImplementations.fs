@@ -198,6 +198,20 @@ type DependencyTracker(raisePropertyChanged : string -> unit, propertyChanged : 
         else
             commandTracking.Add(propertyName, [command])
 
+    let addDependentCommandCSharp propertyName (command : CSharp.ViewModule.INotifyCommand) =
+        let command' =
+            { new INotifyCommand with 
+                [<CLIEvent>] member x.CanExecuteChanged = command.CanExecuteChanged
+                member x.RaiseCanExecuteChanged () = command.RaiseCanExecuteChanged ()
+                member x.CanExecute param = command.CanExecute param
+                member x.Execute param = command.Execute param }
+
+        if (commandTracking.ContainsKey(propertyName)) then
+            let existing = commandTracking.[propertyName]
+            commandTracking.[propertyName] <- command' :: existing
+        else
+            commandTracking.Add(propertyName, [command'])
+
     let addDependentProperty propertyName dependency =
         if (propertyTracking.ContainsKey(dependency)) then
             let existing = propertyTracking.[dependency]
@@ -244,7 +258,7 @@ type DependencyTracker(raisePropertyChanged : string -> unit, propertyChanged : 
         member this.AddPropertyDependency (property : Expression<Func<obj>>, dependency : Expression<Func<obj>>) =
              addDependentProperty (getPropertyNameFromLinqExpression property) (getPropertyNameFromLinqExpression dependency)
 
-        member this.AddCommandDependency (command : INotifyCommand, dependency : string) = addDependentCommand dependency command
+        member this.AddCommandDependency (command : CSharp.ViewModule.INotifyCommand, dependency : string) = addDependentCommandCSharp dependency command
 
-        member this.AddCommandDependency (command : INotifyCommand, dependency : Expression<Func<obj>>) =
-            addDependentCommand (getPropertyNameFromLinqExpression dependency) command
+        member this.AddCommandDependency (command : CSharp.ViewModule.INotifyCommand, dependency : Expression<Func<obj>>) =
+            addDependentCommandCSharp (getPropertyNameFromLinqExpression dependency) command
