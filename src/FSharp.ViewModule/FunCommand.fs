@@ -94,11 +94,11 @@ module internal Commands =
     let createSyncInternal execute canExecute =
         let ceWrapped : obj -> bool = fun _ -> canExecute()
         let func : obj -> unit = (fun _ -> execute())
-        FunCommand(func, ceWrapped) :> INotifyCommand    
+        FunCommand(func, ceWrapped) :> CSharp.ViewModule.INotifyCommand    
 
     let createAsyncInternal (asyncWorkflow : (SynchronizationContext -> Async<unit>)) getExecuting setExecuting canExecute (token : CancellationToken) onCancel =
         let execute = (fun (ui : SynchronizationContext) (p : obj) -> asyncWorkflow(ui))
-        FunCommand(execute, getExecuting, setExecuting, (fun o -> canExecute()), token, onCancel) :> IAsyncNotifyCommand
+        FunCommand(execute, getExecuting, setExecuting, (fun o -> canExecute()), token, onCancel) :> CSharp.ViewModule.IAsyncNotifyCommand
 
     let createSyncParamInternal<'a> (execute : ('a -> unit)) (canExecute : ('a -> bool)) =
         let ceWrapped o = 
@@ -113,7 +113,7 @@ module internal Commands =
             | None -> a |> ignore
             | Some v -> execute(v)
 
-        let result = FunCommand(func, ceWrapped) :> INotifyCommand
+        let result = FunCommand(func, ceWrapped) :> CSharp.ViewModule.INotifyCommand
 
         // Note that we need to handle the fact that the arg is passed as null the first time, due to stupid data binding issues.  Let's fix that here.
         // This will cause the command to requery the CanExecute method after everything's loaded, which will then pass onto the user's canExecute function.
@@ -142,7 +142,7 @@ module internal Commands =
             | None -> emptyFunc ui o 
             | Some v -> asyncWorkflow ui v
 
-        let result = FunCommand(func, getExecuting, setExecuting, ceWrapped, token, onCancel) :> IAsyncNotifyCommand
+        let result = FunCommand(func, getExecuting, setExecuting, ceWrapped, token, onCancel) :> CSharp.ViewModule.IAsyncNotifyCommand
 
         // Note that we need to handle the fact that the arg is passed as null the first time, due to stupid data binding issues.  Let's fix that here.
         // This will cause the command to requery the CanExecute method after everything's loaded, which will then pass onto the user's canExecute function.

@@ -53,18 +53,18 @@ type EventViewModelBase<'a>() =
             let execute = fun _ -> eventStream.Trigger(value)
             let cmd = Commands.createSyncInternal execute canExecute
             addCommandDependencies cmd dependentProperties this.DependencyTracker
-            cmd
+            cmd :> INotifyCommand
 
         member this.EventValueCommandChecked<'a>(canExecute, ?dependentProperties) =
             let execute = fun (args:'a) -> eventStream.Trigger(args)
             let cmd = Commands.createSyncParamInternal execute canExecute
             addCommandDependencies cmd dependentProperties this.DependencyTracker
-            cmd
+            cmd :> INotifyCommand
 
         member this.EventValueCommandChecked<'a,'b>(valueFactory, canExecute, ?dependentProperties) =
             let execute = fun (args:'b) -> eventStream.Trigger(valueFactory(args))
             let cmd = Commands.createSyncParamInternal execute canExecute
             addCommandDependencies cmd dependentProperties this.DependencyTracker
-            cmd
+            cmd :> INotifyCommand
         
 

@@ -314,7 +314,7 @@ type ViewModelUntyped() as self =
             let cmd = Commands.createAsyncInternal asyncWorkflow getExecuting setExecuting (fun () -> true) ct oc
             let opEx = Some [ <@@ this.OperationExecuting @@> ]
             addCommandDependencies cmd opEx
-            cmd
+            cmd :> IAsyncNotifyCommand
 
         member this.CommandAsyncChecked(asyncWorkflow, canExecute, ?dependentProperties: Expr list, ?token, ?onCancel) =
             let ct = defaultArg token CancellationToken.None
@@ -323,7 +323,7 @@ type ViewModelUntyped() as self =
             let opEx = Some [ <@@ this.OperationExecuting @@> ]
             addCommandDependencies cmd opEx
             addCommandDependencies cmd dependentProperties
-            cmd
+            cmd :> IAsyncNotifyCommand
 
         member this.CommandAsyncParam(asyncWorkflow, ?token, ?onCancel) =
             let ct = defaultArg token CancellationToken.None
@@ -331,7 +331,7 @@ type ViewModelUntyped() as self =
             let cmd = Commands.createAsyncParamInternal asyncWorkflow getExecuting setExecuting (fun _ -> true) ct oc
             let opEx = Some [ <@@ this.OperationExecuting @@> ]
             addCommandDependencies cmd opEx
-            cmd
+            cmd :> IAsyncNotifyCommand
 
         member this.CommandAsyncParamChecked(asyncWorkflow, canExecute, ?dependentProperties: Expr list, ?token, ?onCancel) =
             let ct = defaultArg token CancellationToken.None
@@ -340,25 +340,25 @@ type ViewModelUntyped() as self =
             let opEx = Some [ <@@ this.OperationExecuting @@> ]
             addCommandDependencies cmd opEx
             addCommandDependencies cmd dependentProperties
-            cmd
+            cmd :> IAsyncNotifyCommand
 
         member this.CommandSync(execute) =
             let cmd = Commands.createSyncInternal execute (fun () -> true)
-            cmd
+            cmd :> INotifyCommand
 
         member this.CommandSyncChecked(execute, canExecute, ?dependentProperties: Expr list) =
             let cmd = Commands.createSyncInternal execute canExecute
             addCommandDependencies cmd dependentProperties
-            cmd
+            cmd :> INotifyCommand
 
         member this.CommandSyncParam(execute) =
             let cmd = Commands.createSyncParamInternal execute (fun _ -> true)
-            cmd
+            cmd :> INotifyCommand
 
         member this.CommandSyncParamChecked(execute, canExecute, ?dependentProperties: Expr list) =
             let cmd = Commands.createSyncParamInternal execute canExecute
             addCommandDependencies cmd dependentProperties
-            cmd
+            cmd :> INotifyCommand
 
     interface CSharp.ViewModule.IViewModelPropertyFactory with
         member this.Backing<'a> (property : string, defaultValue : 'a, validate : Func<ValidationResult<'a>, ValidationResult<'a>>) =
@@ -389,14 +389,14 @@ type ViewModelUntyped() as self =
             let cmd = Commands.createAsyncInternal (asyncFromTask createTask) getExecuting setExecuting (fun () -> true) token oc
             let opEx = Some [ <@@ this.OperationExecuting @@> ]
             addCommandDependencies cmd opEx
-            cmd :?> CSharp.ViewModule.IAsyncNotifyCommand
+            cmd
         
         member this.CommandAsyncChecked (createTask : Func<SynchronizationContext, Task>, canExecute : Func<bool>, token : CancellationToken, onCancel : Action<OperationCanceledException>, [<ParamArray>] dependentProperties : Expression<Func<obj>> array) =
             let cmd = Commands.createAsyncInternal (asyncFromTask createTask) getExecuting setExecuting canExecute.Invoke token onCancel.Invoke
             let opEx = Some [ <@@ this.OperationExecuting @@> ]
             addCommandDependencies cmd opEx
             addCommandDependenciesLinq cmd dependentProperties
-            cmd :?> CSharp.ViewModule.IAsyncNotifyCommand
+            cmd
         
         member this.CommandAsyncChecked (createTask : Func<SynchronizationContext, Task>, canExecute : Func<bool>, token : CancellationToken, [<ParamArray>] dependentProperties : Expression<Func<obj>> array) =
             (this :> CSharp.ViewModule.IViewModelPropertyFactory).CommandAsyncChecked(createTask, canExecute, token, ignore, dependentProperties)
@@ -409,7 +409,7 @@ type ViewModelUntyped() as self =
             let opEx = Some [ <@@ this.OperationExecuting @@> ]
             addCommandDependencies cmd opEx
             addCommandDependenciesString cmd dependentProperties
-            cmd :?> CSharp.ViewModule.IAsyncNotifyCommand
+            cmd
 
         member this.CommandAsyncChecked (createTask : Func<SynchronizationContext, Task>, canExecute : Func<bool>, token : CancellationToken, [<ParamArray>] dependentProperties : string array) =
             (this :> CSharp.ViewModule.IViewModelPropertyFactory).CommandAsyncChecked(createTask, canExecute, token, ignore, dependentProperties)
@@ -422,14 +422,14 @@ type ViewModelUntyped() as self =
             let cmd = Commands.createAsyncParamInternal (asyncFromTaskParam createTask) getExecuting setExecuting (fun _ -> true) token oc
             let opEx = Some [ <@@ this.OperationExecuting @@> ]
             addCommandDependencies cmd opEx
-            cmd :?> CSharp.ViewModule.IAsyncNotifyCommand
+            cmd
 
         member this.CommandAsyncParamChecked<'a> (createTask : Func<SynchronizationContext, 'a, Task>, canExecute : Func<'a, bool>, token : CancellationToken, onCancel : Action<OperationCanceledException>, [<ParamArray>] dependentProperties : Expression<Func<obj>> array) =
             let cmd = Commands.createAsyncParamInternal (asyncFromTaskParam createTask) getExecuting setExecuting canExecute.Invoke token onCancel.Invoke
             let opEx = Some [ <@@ this.OperationExecuting @@> ]
             addCommandDependencies cmd opEx
             addCommandDependenciesLinq cmd dependentProperties
-            cmd :?> CSharp.ViewModule.IAsyncNotifyCommand
+            cmd
 
         member this.CommandAsyncParamChecked<'a> (createTask : Func<SynchronizationContext, 'a, Task>, canExecute : Func<'a, bool>, token : CancellationToken, [<ParamArray>] dependentProperties : Expression<Func<obj>> array) =
             (this :> CSharp.ViewModule.IViewModelPropertyFactory).CommandAsyncParamChecked(createTask, canExecute, token, ignore, dependentProperties)
@@ -442,7 +442,7 @@ type ViewModelUntyped() as self =
             let opEx = Some [ <@@ this.OperationExecuting @@> ]
             addCommandDependencies cmd opEx
             addCommandDependenciesString cmd dependentProperties
-            cmd :?> CSharp.ViewModule.IAsyncNotifyCommand
+            cmd
 
         member this.CommandAsyncParamChecked<'a> (createTask : Func<SynchronizationContext, 'a, Task>, canExecute : Func<'a, bool>, token : CancellationToken, [<ParamArray>] dependentProperties : string array) =
             (this :> CSharp.ViewModule.IViewModelPropertyFactory).CommandAsyncParamChecked(createTask, canExecute, token, ignore, dependentProperties)
@@ -450,26 +450,26 @@ type ViewModelUntyped() as self =
         member this.CommandAsyncParamChecked<'a> (createTask : Func<SynchronizationContext, 'a, Task>, canExecute : Func<'a, bool>, [<ParamArray>] dependentProperties : string array) =
             (this :> CSharp.ViewModule.IViewModelPropertyFactory).CommandAsyncParamChecked(createTask, canExecute, CancellationToken.None, dependentProperties)
 
-        member this.CommandSync (execute : Action) = Commands.createSyncInternal execute.Invoke (fun () -> true) :?> CSharp.ViewModule.INotifyCommand
+        member this.CommandSync (execute : Action) = Commands.createSyncInternal execute.Invoke (fun () -> true)
 
-        member this.CommandSyncParam<'a> (execute : Action<'a>) =  Commands.createSyncParamInternal execute.Invoke (fun _ -> true) :?> CSharp.ViewModule.INotifyCommand
+        member this.CommandSyncParam<'a> (execute : Action<'a>) =  Commands.createSyncParamInternal execute.Invoke (fun _ -> true)
 
         member this.CommandSyncChecked (execute : Action, canExecute : Func<bool>, [<ParamArray>] dependentProperties : Expression<Func<obj>> array) =
             let cmd = Commands.createSyncInternal execute.Invoke canExecute.Invoke
             addCommandDependenciesLinq cmd dependentProperties
-            cmd :?> CSharp.ViewModule.INotifyCommand
+            cmd
 
         member this.CommandSyncChecked (execute : Action, canExecute : Func<bool>, [<ParamArray>] dependentProperties : string array) =
             let cmd = Commands.createSyncInternal execute.Invoke canExecute.Invoke
             addCommandDependenciesString cmd dependentProperties
-            cmd :?> CSharp.ViewModule.INotifyCommand
+            cmd
 
         member this.CommandSyncParamChecked<'a> (execute : Action<'a>, canExecute : Func<'a, bool>, [<ParamArray>] dependentProperties : Expression<Func<obj>> array) =
             let cmd = Commands.createSyncParamInternal execute.Invoke canExecute.Invoke
             addCommandDependenciesLinq cmd dependentProperties
-            cmd :?> CSharp.ViewModule.INotifyCommand
+            cmd
 
         member this.CommandSyncParamChecked<'a> (execute : Action<'a>, canExecute : Func<'a, bool>, [<ParamArray>] dependentProperties : string array) =
             let cmd = Commands.createSyncParamInternal execute.Invoke canExecute.Invoke
             addCommandDependenciesString cmd dependentProperties
-            cmd :?> CSharp.ViewModule.INotifyCommand
+            cmd
