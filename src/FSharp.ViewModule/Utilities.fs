@@ -32,6 +32,7 @@ module internal Utilities =
     let rec getPropertyNameFromLinqExpression (linqExpr : Expression) =
         match linqExpr with
         | :? LambdaExpression as l -> getPropertyNameFromLinqExpression l.Body
+        | :? UnaryExpression as u -> getPropertyNameFromLinqExpression u.Operand
         | :? MemberExpression as m ->
             match m.Member with
             | :? PropertyInfo as p -> p.Name

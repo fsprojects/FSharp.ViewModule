@@ -152,4 +152,64 @@ module Validators =
 
 namespace CSharp.ViewModule.Validation
 
-type ValidationResult<'a> = FSharp.ViewModule.Validation.ValidationResult<'a>
+open System
+
+open FSharp.ViewModule.Validation
+
+type Validator<'a> = internal Validator of Func<ValidationResult<'a>, ValidationResult<'a>> with
+    static member internal ofFunc v = Func<ValidationResult<'a>, ValidationResult<'a>>(v) |> Validator
+
+    member validator.FixErrors() =
+        match validator with Validator v -> (fun r -> v.Invoke r |> Validators.fixErrors) |> Validator.ofFunc
+
+    member validator.FixErrors (message) =
+        match validator with Validator v -> (fun r -> v.Invoke r |> Validators.fixErrorsWithMessage message) |> Validator.ofFunc
+
+    member validator.Concat (Validator other) =
+        match validator with Validator v -> v.Invoke >> other.Invoke |> Validator.ofFunc
+
+type StepResult = internal StepResult of string option with 
+    static member Pass() = StepResult None
+    static member Fail(error : string) = StepResult (Some error)
+    static member internal unwrap (StepResult r) = r
+
+type Validators internal () =
+
+    static member CreateCustom (validate : Func<'a, StepResult>) = 
+        Validators.custom (validate.Invoke >> StepResult.unwrap) |> Validator.ofFunc
+
+    static member NotNullOrWhitespace() = Validators.notNullOrWhitespace |> Validator.ofFunc
+
+    static member NoSpaces() = Validators.noSpaces |> Validator.ofFunc
+    
+    static member HasLength(length) = Validators.hasLength length |> Validator.ofFunc
+
+    static member HasLengthAtLeast(length) = Validators.hasLengthAtLeast length |> Validator.ofFunc
+
+    static member HasLengthNotLongerThan(length) = Validators.hasLengthNoLongerThan length |> Validator.ofFunc
+
+    static member MatchesPattern(pattern) = Validators.matchesPattern pattern |> Validator.ofFunc
+
+    static member IsAlphanumeric() = Validators.isAlphanumeric |> Validator.ofFunc
+    
+    static member ContainsAtLeastOneDigit() = Validators.containsAtLeastOneDigit |> Validator.ofFunc
+
+    static member ContainsAtLeastOneUpperCaseCharacter = Validators.containsAtLeastOneUpperCaseCharacter |> Validator.ofFunc
+
+    static member ContainsAtLeastOneLowerCaseCharacter = Validators.containsAtLeastOneLowerCaseCharacter |> Validator.ofFunc
+
+    static member NotEqual(value) = Validators.notEqual value |> Validator.ofFunc
+
+    static member GreaterThan(value) = Validators.greaterThan value |> Validator.ofFunc
+
+    static member GreaterOrEqualTo(value) = Validators.greaterOrEqualTo value |> Validator.ofFunc
+
+    static member LessThan(value) = Validators.lessThan value |> Validator.ofFunc
+
+    static member LessOrEqualTo(value) = Validators.lessOrEqualTo value |> Validator.ofFunc
+
+    static member IsBetween(lowerBound, upperBound) = Validators.isBetween lowerBound upperBound |> Validator.ofFunc
+
+    static member ContainedWithin(collection) = Validators.containedWithin collection |> Validator.ofFunc
+
+    static member NotContainedWithin(collection) = Validators.notContainedWithin collection |> Validator.ofFunc

@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:CSharp.ViewModule.HelloWorld"
         mc:Ignorable="d"
-        Title="MainWindow" Height="60" Width="250">
+        Title="MainWindow" Height="120" Width="250">
     <Window.DataContext>
         <local:HelloWorldViewModel />
     </Window.DataContext>
@@ -13,13 +13,21 @@
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition />
+            <RowDefinition />
+            <RowDefinition />
         </Grid.RowDefinitions>
         <Grid.ColumnDefinitions>
             <ColumnDefinition />
-            <ColumnDefinition Width="80" />
+            <ColumnDefinition />
         </Grid.ColumnDefinitions>
 
-        <TextBox Grid.Row="0" Grid.Column="0" Text="{Binding Name}" />
-        <Button Grid.Row="0" Grid.Column="1" Content="Say hello" Command="{Binding SayHello}"/>
+        <Label Grid.Row="0" Grid.Column="0" Content="First name:" />
+        <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding FirstName}" IsEnabled="{Binding ReadyToGreet}" />
+
+        <Label Grid.Row="1" Grid.Column="0" Content="Last name:" />
+        <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding LastName}" IsEnabled="{Binding ReadyToGreet}" />
+
+        <Button Grid.Row="2" Grid.Column="0" Content="Say hello" Command="{Binding SayHello}" IsEnabled="{Binding IsValid}" />
+        <Button Grid.Row="2" Grid.Column="1" Content="Stop" Command="{Binding Cancel}" IsEnabled="{Binding OperationExecuting}" />
     </Grid>
 </Window>
