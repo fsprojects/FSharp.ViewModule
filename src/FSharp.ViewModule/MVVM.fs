@@ -15,12 +15,50 @@ limitations under the License.
 *)
 
 namespace CSharp.ViewModule
+open System
+open System.Threading
+open System.Threading.Tasks
+open System.Runtime.InteropServices
+
+open System.Linq.Expressions
+
+open CSharp.ViewModule.Validation
 
 /// Encapsulation of a value which handles raising property changed automatically in a clean manner
 type public INotifyingValue<'a> =
     inherit System.IObservable<'a>
     /// Extracts the current value from the backing storage
     abstract member Value : 'a with get, set
+
+type IViewModelPropertyFactory =
+    abstract Backing<'a> : property : Expression<Func<'a>> * defaultValue:'a * validate : Func<ValidationResult<'a>, ValidationResult<'a>> -> INotifyingValue<'a>
+    abstract Backing<'a> : property : string * defaultValue:'a * validate : Func<ValidationResult<'a>, ValidationResult<'a>> -> INotifyingValue<'a>
+    abstract Backing<'a> : property : Expression<Func<'a>> * defaultValue:'a * [<Optional>] validate: Func<'a, string seq> -> INotifyingValue<'a>
+    abstract Backing<'a> : property : string * defaultValue:'a * [<Optional>] validate: Func<'a, string seq> -> INotifyingValue<'a>
+    abstract FromFuncs<'a> : property : Expression<Func<'a>> * getter : Func<'a> * setter: Action<'a> -> INotifyingValue<'a>
+    abstract FromFuncs<'a> : property : string * getter : Func<'a> * setter: Action<'a> -> INotifyingValue<'a>
+
+    abstract CommandAsync : createTask : Func<SynchronizationContext, Task> * [<Optional>] token : CancellationToken * [<Optional>] onCancel : Action<OperationCanceledException> -> IAsyncNotifyCommand
+    abstract CommandAsyncChecked : createTask : Func<SynchronizationContext, Task> * canExecute: Func<bool> * [<ParamArray>] dependentProperties : Expression<Func<obj>> array -> IAsyncNotifyCommand
+    abstract CommandAsyncChecked : createTask : Func<SynchronizationContext, Task> * canExecute: Func<bool> * token : CancellationToken * [<ParamArray>] dependentProperties : Expression<Func<obj>> array -> IAsyncNotifyCommand
+    abstract CommandAsyncChecked : createTask : Func<SynchronizationContext, Task> * canExecute: Func<bool> * token : CancellationToken * onCancel : Action<OperationCanceledException> * [<ParamArray>] dependentProperties : Expression<Func<obj>> array -> IAsyncNotifyCommand
+    abstract CommandAsyncChecked : createTask : Func<SynchronizationContext, Task> * canExecute: Func<bool> * [<ParamArray>] dependentProperties : string array -> IAsyncNotifyCommand
+    abstract CommandAsyncChecked : createTask : Func<SynchronizationContext, Task> * canExecute: Func<bool> * token : CancellationToken * [<ParamArray>] dependentProperties : string array -> IAsyncNotifyCommand
+    abstract CommandAsyncChecked : createTask : Func<SynchronizationContext, Task> * canExecute: Func<bool> * token : CancellationToken * onCancel : Action<OperationCanceledException> * [<ParamArray>] dependentProperties : string array -> IAsyncNotifyCommand
+    abstract CommandAsyncParam<'a> : createTask : Func<SynchronizationContext, 'a, Task> * [<Optional>] token : CancellationToken * [<Optional>] onCancel : Action<OperationCanceledException> -> IAsyncNotifyCommand
+    abstract CommandAsyncParamChecked<'a> : createTask : Func<SynchronizationContext, 'a, Task> * canExecute : Func<'a, bool> * [<ParamArray>] dependentProperties : Expression<Func<obj>> array -> IAsyncNotifyCommand    
+    abstract CommandAsyncParamChecked<'a> : createTask : Func<SynchronizationContext, 'a, Task> * canExecute : Func<'a, bool> * token : CancellationToken * [<ParamArray>] dependentProperties : Expression<Func<obj>> array -> IAsyncNotifyCommand    
+    abstract CommandAsyncParamChecked<'a> : createTask : Func<SynchronizationContext, 'a, Task> * canExecute : Func<'a, bool> * token : CancellationToken * onCancel : Action<OperationCanceledException> * [<ParamArray>] dependentProperties : Expression<Func<obj>> array -> IAsyncNotifyCommand    
+    abstract CommandAsyncParamChecked<'a> : createTask : Func<SynchronizationContext, 'a, Task> * canExecute : Func<'a, bool> * [<ParamArray>] dependentProperties : string array -> IAsyncNotifyCommand    
+    abstract CommandAsyncParamChecked<'a> : createTask : Func<SynchronizationContext, 'a, Task> * canExecute : Func<'a, bool> * token : CancellationToken * [<ParamArray>] dependentProperties : string array -> IAsyncNotifyCommand    
+    abstract CommandAsyncParamChecked<'a> : createTask : Func<SynchronizationContext, 'a, Task> * canExecute : Func<'a, bool> * token : CancellationToken * onCancel : Action<OperationCanceledException> * [<ParamArray>] dependentProperties : string array -> IAsyncNotifyCommand    
+
+    abstract CommandSync : execute : Action -> INotifyCommand
+    abstract CommandSyncParam<'a> : execute : Action<'a> -> INotifyCommand
+    abstract CommandSyncChecked : execute : Action * canExecute : Func<bool> * [<ParamArray>] dependentProperties: Expression<Func<obj>> array -> INotifyCommand
+    abstract CommandSyncChecked : execute : Action * canExecute : Func<bool> * [<ParamArray>] dependentProperties: string array -> INotifyCommand
+    abstract CommandSyncParamChecked<'a> : execute : Action<'a> * canExecute : Func<'a, bool> * [<ParamArray>] dependentProperties : Expression<Func<obj>> array -> INotifyCommand    
+    abstract CommandSyncParamChecked<'a> : execute : Action<'a> * canExecute : Func<'a, bool> * [<ParamArray>] dependentProperties : string array -> INotifyCommand    
 
 namespace FSharp.ViewModule
 
@@ -146,47 +184,6 @@ type internal NotifyingValueFuncs<'a> (propertyName, raisePropertyChanged : stri
 
     interface CSharp.ViewModule.INotifyingValue<'a> with
         member this.Value with get() = this.Value and set(v) = this.Value <- v
-
-namespace CSharp.ViewModule
-
-open System
-open System.Threading
-open System.Threading.Tasks
-open System.Runtime.InteropServices
-
-open System.Linq.Expressions
-
-open CSharp.ViewModule.Validation
-
-type IViewModelPropertyFactory =
-    abstract Backing<'a> : property : Expression<Func<'a>> * defaultValue:'a * validate : Func<ValidationResult<'a>, ValidationResult<'a>> -> CSharp.ViewModule.INotifyingValue<'a>
-    abstract Backing<'a> : property : string * defaultValue:'a * validate : Func<ValidationResult<'a>, ValidationResult<'a>> -> CSharp.ViewModule.INotifyingValue<'a>
-    abstract Backing<'a> : property : Expression<Func<'a>> * defaultValue:'a * [<Optional>] validate: Func<'a, string seq> -> CSharp.ViewModule.INotifyingValue<'a>
-    abstract Backing<'a> : property : string * defaultValue:'a * [<Optional>] validate: Func<'a, string seq> -> CSharp.ViewModule.INotifyingValue<'a>
-    abstract FromFuncs<'a> : property : Expression<Func<'a>> * getter : Func<'a> * setter: Action<'a> -> CSharp.ViewModule.INotifyingValue<'a>
-    abstract FromFuncs<'a> : property : string * getter : Func<'a> * setter: Action<'a> -> CSharp.ViewModule.INotifyingValue<'a>
-
-    abstract CommandAsync : createTask : Func<SynchronizationContext, Task> * [<Optional>] token : CancellationToken * [<Optional>] onCancel : Action<OperationCanceledException> -> IAsyncNotifyCommand
-    abstract CommandAsyncChecked : createTask : Func<SynchronizationContext, Task> * canExecute: Func<bool> * [<ParamArray>] dependentProperties : Expression<Func<obj>> array -> IAsyncNotifyCommand
-    abstract CommandAsyncChecked : createTask : Func<SynchronizationContext, Task> * canExecute: Func<bool> * token : CancellationToken * [<ParamArray>] dependentProperties : Expression<Func<obj>> array -> IAsyncNotifyCommand
-    abstract CommandAsyncChecked : createTask : Func<SynchronizationContext, Task> * canExecute: Func<bool> * token : CancellationToken * onCancel : Action<OperationCanceledException> * [<ParamArray>] dependentProperties : Expression<Func<obj>> array -> IAsyncNotifyCommand
-    abstract CommandAsyncChecked : createTask : Func<SynchronizationContext, Task> * canExecute: Func<bool> * [<ParamArray>] dependentProperties : string array -> IAsyncNotifyCommand
-    abstract CommandAsyncChecked : createTask : Func<SynchronizationContext, Task> * canExecute: Func<bool> * token : CancellationToken * [<ParamArray>] dependentProperties : string array -> IAsyncNotifyCommand
-    abstract CommandAsyncChecked : createTask : Func<SynchronizationContext, Task> * canExecute: Func<bool> * token : CancellationToken * onCancel : Action<OperationCanceledException> * [<ParamArray>] dependentProperties : string array -> IAsyncNotifyCommand
-    abstract CommandAsyncParam<'a> : createTask : Func<SynchronizationContext, 'a, Task> * [<Optional>] token : CancellationToken * [<Optional>] onCancel : Action<OperationCanceledException> -> IAsyncNotifyCommand
-    abstract CommandAsyncParamChecked<'a> : createTask : Func<SynchronizationContext, 'a, Task> * canExecute : Func<'a, bool> * [<ParamArray>] dependentProperties : Expression<Func<obj>> array -> IAsyncNotifyCommand    
-    abstract CommandAsyncParamChecked<'a> : createTask : Func<SynchronizationContext, 'a, Task> * canExecute : Func<'a, bool> * token : CancellationToken * [<ParamArray>] dependentProperties : Expression<Func<obj>> array -> IAsyncNotifyCommand    
-    abstract CommandAsyncParamChecked<'a> : createTask : Func<SynchronizationContext, 'a, Task> * canExecute : Func<'a, bool> * token : CancellationToken * onCancel : Action<OperationCanceledException> * [<ParamArray>] dependentProperties : Expression<Func<obj>> array -> IAsyncNotifyCommand    
-    abstract CommandAsyncParamChecked<'a> : createTask : Func<SynchronizationContext, 'a, Task> * canExecute : Func<'a, bool> * [<ParamArray>] dependentProperties : string array -> IAsyncNotifyCommand    
-    abstract CommandAsyncParamChecked<'a> : createTask : Func<SynchronizationContext, 'a, Task> * canExecute : Func<'a, bool> * token : CancellationToken * [<ParamArray>] dependentProperties : string array -> IAsyncNotifyCommand    
-    abstract CommandAsyncParamChecked<'a> : createTask : Func<SynchronizationContext, 'a, Task> * canExecute : Func<'a, bool> * token : CancellationToken * onCancel : Action<OperationCanceledException> * [<ParamArray>] dependentProperties : string array -> IAsyncNotifyCommand    
-
-    abstract CommandSync : execute : Action -> INotifyCommand
-    abstract CommandSyncParam<'a> : execute : Action<'a> -> INotifyCommand
-    abstract CommandSyncChecked : execute : Action * canExecute : Func<bool> * [<ParamArray>] dependentProperties: Expression<Func<obj>> array -> INotifyCommand
-    abstract CommandSyncChecked : execute : Action * canExecute : Func<bool> * [<ParamArray>] dependentProperties: string array -> INotifyCommand
-    abstract CommandSyncParamChecked<'a> : execute : Action<'a> * canExecute : Func<'a, bool> * [<ParamArray>] dependentProperties : Expression<Func<obj>> array -> INotifyCommand    
-    abstract CommandSyncParamChecked<'a> : execute : Action<'a> * canExecute : Func<'a, bool> * [<ParamArray>] dependentProperties : string array -> INotifyCommand    
 
 namespace FSharp.ViewModule.Internal
 open System
