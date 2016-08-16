@@ -14,19 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 *)
 
-namespace FSharp.ViewModule
+namespace ViewModule
 
 [<AbstractClass>]
 type ViewModelBase() =
     inherit FSharp.ViewModule.Internal.ViewModelUntyped()
 
-    member this.Factory with get() = this :> IViewModelPropertyFactory
-
-namespace CSharp.ViewModule
-
-[<AbstractClass>]
-type ViewModelBase() =
-    inherit FSharp.ViewModule.Internal.ViewModelUntyped()
-
-    member this.DependencyTracker with get() = this.DependencyTrackerInternal :> IDependencyTracker
     member this.Factory with get() = this :> IViewModelPropertyFactory

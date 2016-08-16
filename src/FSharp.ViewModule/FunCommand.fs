@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 *)
 
-namespace FSharp.ViewModule
+namespace ViewModule
 
 open System
 open System.ComponentModel
@@ -24,8 +24,6 @@ open System.Windows.Input
 
 open Microsoft.FSharp.Quotations
 open Microsoft.FSharp.Quotations.Patterns
-
-open FSharp.ViewModule
 
 // Default command implementation for our MVVM base classes
 type FunCommand (execute : obj -> unit, canExecute, token) =
@@ -82,23 +80,19 @@ type FunCommand (execute : obj -> unit, canExecute, token) =
         member this.RaiseCanExecuteChanged() =
             canExecuteChanged.Trigger(this, EventArgs.Empty)
 
-    interface CSharp.ViewModule.INotifyCommand
-
     interface IAsyncNotifyCommand with
         member this.CancellationToken with get() = this.cancellationToken and set(v) = this.cancellationToken <- v
-
-    interface CSharp.ViewModule.IAsyncNotifyCommand
 
 /// Module containing Command factory methods to create ICommand implementations
 module internal Commands =
     let createSyncInternal execute canExecute =
         let ceWrapped : obj -> bool = fun _ -> canExecute()
         let func : obj -> unit = (fun _ -> execute())
-        FunCommand(func, ceWrapped) :> CSharp.ViewModule.INotifyCommand    
+        FunCommand(func, ceWrapped) :> INotifyCommand
 
     let createAsyncInternal (asyncWorkflow : (SynchronizationContext -> Async<unit>)) getExecuting setExecuting canExecute (token : CancellationToken) onCancel =
         let execute = (fun (ui : SynchronizationContext) (p : obj) -> asyncWorkflow(ui))
-        FunCommand(execute, getExecuting, setExecuting, (fun o -> canExecute()), token, onCancel) :> CSharp.ViewModule.IAsyncNotifyCommand
+        FunCommand(execute, getExecuting, setExecuting, (fun o -> canExecute()), token, onCancel) :> IAsyncNotifyCommand
 
     let createSyncParamInternal<'a> (execute : ('a -> unit)) (canExecute : ('a -> bool)) =
         let ceWrapped o = 
@@ -113,7 +107,7 @@ module internal Commands =
             | None -> a |> ignore
             | Some v -> execute(v)
 
-        let result = FunCommand(func, ceWrapped) :> CSharp.ViewModule.INotifyCommand
+        let result = FunCommand(func, ceWrapped) :> INotifyCommand
 
         // Note that we need to handle the fact that the arg is passed as null the first time, due to stupid data binding issues.  Let's fix that here.
         // This will cause the command to requery the CanExecute method after everything's loaded, which will then pass onto the user's canExecute function.
@@ -142,7 +136,7 @@ module internal Commands =
             | None -> emptyFunc ui o 
             | Some v -> asyncWorkflow ui v
 
-        let result = FunCommand(func, getExecuting, setExecuting, ceWrapped, token, onCancel) :> CSharp.ViewModule.IAsyncNotifyCommand
+        let result = FunCommand(func, getExecuting, setExecuting, ceWrapped, token, onCancel) :> IAsyncNotifyCommand
 
         // Note that we need to handle the fact that the arg is passed as null the first time, due to stupid data binding issues.  Let's fix that here.
         // This will cause the command to requery the CanExecute method after everything's loaded, which will then pass onto the user's canExecute function.

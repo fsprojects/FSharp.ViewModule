@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 *)
 
-namespace FSharp.ViewModule.Validation
+namespace ViewModule.Validation.FSharp
 
 open System
 open System.Text.RegularExpressions
@@ -150,66 +150,73 @@ module Validators =
         workflow(value)
 
 
-namespace CSharp.ViewModule.Validation
+namespace ViewModule.CSharp.Validation
 
 open System
+open System.Runtime.CompilerServices
 
-open FSharp.ViewModule.Validation
-
-type Validator<'a> = internal Validator of Func<ValidationResult<'a>, ValidationResult<'a>> with
-    static member internal ofFunc v = Func<ValidationResult<'a>, ValidationResult<'a>>(v) |> Validator
-
-    member validator.FixErrors() =
-        match validator with Validator v -> (fun r -> v.Invoke r |> Validators.fixErrors) |> Validator.ofFunc
-
-    member validator.FixErrors (message) =
-        match validator with Validator v -> (fun r -> v.Invoke r |> Validators.fixErrorsWithMessage message) |> Validator.ofFunc
-
-    member validator.Concat (Validator other) =
-        match validator with Validator v -> v.Invoke >> other.Invoke |> Validator.ofFunc
+open ViewModule.Validation
+open ViewModule.Validation.FSharp
 
 type StepResult = internal StepResult of string option with 
     static member Pass() = StepResult None
     static member Fail(error : string) = StepResult (Some error)
-    static member internal unwrap (StepResult r) = r
+    
+    member internal result.Value = match result with StepResult r -> r
+
+type Validator<'a> = internal Validator of (ValidationResult<'a> -> ValidationResult<'a>)
+
+[<Extension>]
+type ValidatorExensions() = 
+       
+    [<Extension>]    
+    static member Then(Validator validator, next : Func<_, StepResult>) =
+        Validator (validator >> Validators.custom (fun x -> (next.Invoke x).Value))
+
+    [<Extension>]
+    static member FixErrors(Validator validator) =
+        Validator (validator >> Validators.fixErrors)
+
+    [<Extension>]
+    static member FixErrors(Validator validator, message) =
+        Validator (validator >> Validators.fixErrorsWithMessage message)
 
 type Validators internal () =
+    static member CreateCustom (validate : Func<_, StepResult>) = 
+        Validator (Validators.custom (validate.Invoke >> (fun r -> r.Value)))
 
-    static member CreateCustom (validate : Func<'a, StepResult>) = 
-        Validators.custom (validate.Invoke >> StepResult.unwrap) |> Validator.ofFunc
+    static member NotNullOrWhitespace() = Validator (Validators.notNullOrWhitespace)
 
-    static member NotNullOrWhitespace() = Validators.notNullOrWhitespace |> Validator.ofFunc
-
-    static member NoSpaces() = Validators.noSpaces |> Validator.ofFunc
+    static member NoSpaces() = Validator (Validators.noSpaces)
     
-    static member HasLength(length) = Validators.hasLength length |> Validator.ofFunc
+    static member HasLength(length) = Validator (Validators.hasLength length)
 
-    static member HasLengthAtLeast(length) = Validators.hasLengthAtLeast length |> Validator.ofFunc
+    static member HasLengthAtLeast(length) = Validator (Validators.hasLengthAtLeast length)
 
-    static member HasLengthNotLongerThan(length) = Validators.hasLengthNoLongerThan length |> Validator.ofFunc
+    static member HasLengthNotLongerThan(length) = Validator (Validators.hasLengthNoLongerThan length)
 
-    static member MatchesPattern(pattern) = Validators.matchesPattern pattern |> Validator.ofFunc
+    static member MatchesPattern(pattern) = Validator (Validators.matchesPattern pattern)
 
-    static member IsAlphanumeric() = Validators.isAlphanumeric |> Validator.ofFunc
+    static member IsAlphanumeric() = Validator (Validators.isAlphanumeric)
     
-    static member ContainsAtLeastOneDigit() = Validators.containsAtLeastOneDigit |> Validator.ofFunc
+    static member ContainsAtLeastOneDigit() = Validator (Validators.containsAtLeastOneDigit)
 
-    static member ContainsAtLeastOneUpperCaseCharacter = Validators.containsAtLeastOneUpperCaseCharacter |> Validator.ofFunc
+    static member ContainsAtLeastOneUpperCaseCharacter = Validator (Validators.containsAtLeastOneUpperCaseCharacter)
 
-    static member ContainsAtLeastOneLowerCaseCharacter = Validators.containsAtLeastOneLowerCaseCharacter |> Validator.ofFunc
+    static member ContainsAtLeastOneLowerCaseCharacter = Validator (Validators.containsAtLeastOneLowerCaseCharacter)
 
-    static member NotEqual(value) = Validators.notEqual value |> Validator.ofFunc
+    static member NotEqual(value) = Validator (Validators.notEqual value)
 
-    static member GreaterThan(value) = Validators.greaterThan value |> Validator.ofFunc
+    static member GreaterThan(value) = Validator (Validators.greaterThan value)
 
-    static member GreaterOrEqualTo(value) = Validators.greaterOrEqualTo value |> Validator.ofFunc
+    static member GreaterOrEqualTo(value) = Validator (Validators.greaterOrEqualTo value)
 
-    static member LessThan(value) = Validators.lessThan value |> Validator.ofFunc
+    static member LessThan(value) = Validator (Validators.lessThan value)
 
-    static member LessOrEqualTo(value) = Validators.lessOrEqualTo value |> Validator.ofFunc
+    static member LessOrEqualTo(value) = Validator (Validators.lessOrEqualTo value)
 
-    static member IsBetween(lowerBound, upperBound) = Validators.isBetween lowerBound upperBound |> Validator.ofFunc
+    static member IsBetween(lowerBound, upperBound) = Validator (Validators.isBetween lowerBound upperBound)
 
-    static member ContainedWithin(collection) = Validators.containedWithin collection |> Validator.ofFunc
+    static member ContainedWithin(collection) = Validator (Validators.containedWithin collection)
 
-    static member NotContainedWithin(collection) = Validators.notContainedWithin collection |> Validator.ofFunc
+    static member NotContainedWithin(collection) = Validator (Validators.notContainedWithin collection)

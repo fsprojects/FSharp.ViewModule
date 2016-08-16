@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 *)
 
-namespace FSharp.ViewModule
+namespace ViewModule
 
 open System
 open System.Windows.Input
@@ -28,7 +28,7 @@ type EventViewModelBase<'a>() =
 
     let addCommandDependencies cmd dependentProperties (tracker : IDependencyTracker) =
         let deps : Expr list = defaultArg dependentProperties []
-        deps |> List.iter (fun prop -> tracker.AddCommandDependency(cmd, prop)) 
+        deps |> List.iter (fun prop -> tracker.AddCommandDependency(cmd, getPropertyNameFromExpression prop)) 
 
     member __.EventStream = eventStream.Publish :> IObservable<'a>
 
@@ -53,18 +53,18 @@ type EventViewModelBase<'a>() =
             let execute = fun _ -> eventStream.Trigger(value)
             let cmd = Commands.createSyncInternal execute canExecute
             addCommandDependencies cmd dependentProperties this.DependencyTracker
-            cmd :> INotifyCommand
+            cmd
 
         member this.EventValueCommandChecked<'a>(canExecute, ?dependentProperties) =
             let execute = fun (args:'a) -> eventStream.Trigger(args)
             let cmd = Commands.createSyncParamInternal execute canExecute
             addCommandDependencies cmd dependentProperties this.DependencyTracker
-            cmd :> INotifyCommand
+            cmd
 
         member this.EventValueCommandChecked<'a,'b>(valueFactory, canExecute, ?dependentProperties) =
             let execute = fun (args:'b) -> eventStream.Trigger(valueFactory(args))
             let cmd = Commands.createSyncParamInternal execute canExecute
             addCommandDependencies cmd dependentProperties this.DependencyTracker
-            cmd :> INotifyCommand
+            cmd
         
 

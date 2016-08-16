@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 *)
 
-namespace FSharp.ViewModule
+namespace ViewModule
 
 open System
 open System.ComponentModel
@@ -26,8 +26,8 @@ open Microsoft.FSharp.Quotations
 open Microsoft.FSharp.Quotations.Patterns
 
 type internal ValidationKey =
-    | PropertyGeneratedValidation of ValidationResult
-    | EntityGeneratedValidation of ValidationResult
+    | PropertyGeneratedValidation of ValidationState
+    | EntityGeneratedValidation of ValidationState
 
 type internal ValidationSource =
     | FromProperty
@@ -36,7 +36,7 @@ type internal ValidationEntry =
     | PropertyEntry of propertyName : string * source : ValidationSource
     | EntityEntry of source : ValidationSource
 
-type ValidationTracker(raiseErrorsChanged : string -> unit, propertyChanged : IObservable<PropertyChangedEventArgs>, entityValidator : string -> ValidationResult seq, propertiesToIgnore : Expr list) =
+type ValidationTracker(raiseErrorsChanged : string -> unit, propertyChanged : IObservable<PropertyChangedEventArgs>, entityValidator : string -> ValidationState seq, propertiesToIgnore : Expr list) =
     let errorDictionary = Dictionary<ValidationEntry, string list>()
     let validationDictionary = Dictionary<string, unit -> string list>()
     let propertyNamesToIgnore = propertiesToIgnore |> List.map getPropertyNameFromExpression
@@ -143,10 +143,10 @@ type ValidationTracker(raiseErrorsChanged : string -> unit, propertyChanged : IO
             }
 
     interface IValidationTracker with
-        member this.SetPropertyValidationResult (vr : ValidationResult) = 
+        member this.SetPropertyValidationState (vr : ValidationState) = 
             setResult(PropertyGeneratedValidation(vr))
         
-        member this.SetEntityValidationResult (vr : ValidationResult) = 
+        member this.SetEntityValidationResult (vr : ValidationState) = 
             setResult(EntityGeneratedValidation(vr))
         
         member this.ClearErrors() =
@@ -198,9 +198,6 @@ type DependencyTracker(raisePropertyChanged : string -> unit, propertyChanged : 
         else
             commandTracking.Add(propertyName, [command])
 
-    let addDependentCommandCSharp propertyName (command : CSharp.ViewModule.INotifyCommand) =
-        addDependentCommand propertyName (command :> INotifyCommand)
-
     let addDependentProperty propertyName dependency =
         if (propertyTracking.ContainsKey(dependency)) then
             let existing = propertyTracking.[dependency]
@@ -220,34 +217,14 @@ type DependencyTracker(raisePropertyChanged : string -> unit, propertyChanged : 
 
     interface IDependencyTracker with
         member this.AddPropertyDependencies (property : string, dependentProperties: string list) = addDependentProperties property dependentProperties
-
-        member this.AddPropertyDependencies(property : Expr, dependentProperties: Expr list) =             
-            let dependents = dependentProperties |> List.map getPropertyNameFromExpression
-            addDependentProperties (getPropertyNameFromExpression property) dependents
-            
-        member this.AddPropertyDependency (property : Expr, dependentProperty: Expr) = 
-            addDependentProperty (getPropertyNameFromExpression property) (getPropertyNameFromExpression dependentProperty)
-
         member this.AddPropertyDependency (property : string, dependentProperty: string) = addDependentProperty property dependentProperty
-
-        member this.AddCommandDependency (command : INotifyCommand, expr) = addDependentCommand (getPropertyNameFromExpression expr) command
-
         member this.AddCommandDependency (command : INotifyCommand, name) = addDependentCommand name command
 
-    interface CSharp.ViewModule.IDependencyTracker with
-        member this.AddPropertyDependencies (property : string, [<ParamArray>] dependencies : string array) =
-            addDependentProperties property (List.ofArray dependencies)
-
-        member this.AddPropertyDependencies (property : Expression<Func<obj>>, [<ParamArray>] dependencies : Expression<Func<obj>> array) =
-            let dependents = dependencies |> Array.map getPropertyNameFromLinqExpression |> List.ofArray
-            addDependentProperties (getPropertyNameFromLinqExpression property) dependents
-
-        member this.AddPropertyDependency (property : string, dependency : string) = addDependentProperty property dependency
-
-        member this.AddPropertyDependency (property : Expression<Func<obj>>, dependency : Expression<Func<obj>>) =
-             addDependentProperty (getPropertyNameFromLinqExpression property) (getPropertyNameFromLinqExpression dependency)
-
-        member this.AddCommandDependency (command : CSharp.ViewModule.INotifyCommand, dependency : string) = addDependentCommandCSharp dependency command
-
-        member this.AddCommandDependency (command : CSharp.ViewModule.INotifyCommand, dependency : Expression<Func<obj>>) =
-            addDependentCommandCSharp (getPropertyNameFromLinqExpression dependency) command
+        // Expr implementations
+        // member this.AddPropertyDependencies(property : Expr, dependentProperties: Expr list) =             
+        //     let dependents = dependentProperties |> List.map getPropertyNameFromExpression
+        //     addDependentProperties (getPropertyNameFromExpression property) dependents
+        //     
+        // member this.AddPropertyDependency (property : Expr, dependentProperty: Expr) = 
+        //     addDependentProperty (getPropertyNameFromExpression property) (getPropertyNameFromExpression dependentProperty)
+        // member this.AddCommandDependency (command : INotifyCommand, expr) = addDependentCommand (getPropertyNameFromExpression expr) command

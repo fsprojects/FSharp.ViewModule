@@ -14,10 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 *)
 
-namespace FSharp.ViewModule.Progress
+namespace ViewModule.Progress
 
 open System
-open FSharp.ViewModule
+open ViewModule
 
 type OperationState =
 | Idle
@@ -29,11 +29,11 @@ type ProgressManager() as self =
 
     let progressHandler = Progress<OperationState>()
 
-    let isOperating = self.Factory.Backing(<@@ self.IsOperating @@>, false)
-    let indeterminate = self.Factory.Backing(<@@ self.Indeterminate @@>, false)
-    let current = self.Factory.Backing(<@@ self.Current @@>, 0)
-    let max = self.Factory.Backing(<@@ self.Max @@>, 100)
-    let status = self.Factory.Backing(<@@ self.Status @@>, String.Empty)
+    let isOperating = self.Factory.Backing(getPropertyNameFromExpression <@@ self.IsOperating @@>, false)
+    let indeterminate = self.Factory.Backing(getPropertyNameFromExpression <@@ self.Indeterminate @@>, false)
+    let current = self.Factory.Backing(getPropertyNameFromExpression <@@ self.Current @@>, 0)
+    let max = self.Factory.Backing(getPropertyNameFromExpression <@@ self.Max @@>, 100)
+    let status = self.Factory.Backing(getPropertyNameFromExpression <@@ self.Status @@>, String.Empty)
 
     do
         progressHandler.ProgressChanged.Add(fun pc ->
