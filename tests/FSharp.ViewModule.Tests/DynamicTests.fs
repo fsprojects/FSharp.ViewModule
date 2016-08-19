@@ -1,6 +1,7 @@
 ﻿module ViewModule.Tests.DynamicViewModel
 
 open ViewModule
+open ViewModule.DynamicVM
 open NUnit.Framework
 open System.ComponentModel
 
