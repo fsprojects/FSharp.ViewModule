@@ -1,4 +1,4 @@
-﻿namespace FSharp.ViewModule
+﻿namespace ViewModule
 
 open System
 open System.Collections.Generic

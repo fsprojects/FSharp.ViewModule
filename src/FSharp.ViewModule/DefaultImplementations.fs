@@ -215,16 +215,8 @@ type DependencyTracker(raisePropertyChanged : string -> unit, propertyChanged : 
     /// Optional context used to raise all property changed notifications.  If null, they'll get raised directly.
     member val SynchronizationContext : SynchronizationContext = null with get, set
 
-    interface IDependencyTracker with
-        member this.AddPropertyDependencies (property : string, dependentProperties: string list) = addDependentProperties property dependentProperties
-        member this.AddPropertyDependency (property : string, dependentProperty: string) = addDependentProperty property dependentProperty
-        member this.AddCommandDependency (command : INotifyCommand, name) = addDependentCommand name command
+    interface IDependencyTracker
 
-        // Expr implementations
-        // member this.AddPropertyDependencies(property : Expr, dependentProperties: Expr list) =             
-        //     let dependents = dependentProperties |> List.map getPropertyNameFromExpression
-        //     addDependentProperties (getPropertyNameFromExpression property) dependents
-        //     
-        // member this.AddPropertyDependency (property : Expr, dependentProperty: Expr) = 
-        //     addDependentProperty (getPropertyNameFromExpression property) (getPropertyNameFromExpression dependentProperty)
-        // member this.AddCommandDependency (command : INotifyCommand, expr) = addDependentCommand (getPropertyNameFromExpression expr) command
+    member internal this.AddPropertyDependenciesI (property : string, dependentProperties: string list) = addDependentProperties property dependentProperties
+    member internal this.AddPropertyDependencyI (property : string, dependentProperty: string) = addDependentProperty property dependentProperty
+    member internal this.AddCommandDependencyI (command : INotifyCommand, name) = addDependentCommand name command

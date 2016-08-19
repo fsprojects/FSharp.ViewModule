@@ -22,13 +22,13 @@ open Microsoft.FSharp.Quotations
 
 [<AbstractClass>]
 type EventViewModelBase<'a>() =
-    inherit FSharp.ViewModule.Internal.ViewModelUntyped()
+    inherit ViewModule.Internal.ViewModelUntyped()
     
     let eventStream = Event<'a>()
 
     let addCommandDependencies cmd dependentProperties (tracker : IDependencyTracker) =
         let deps : Expr list = defaultArg dependentProperties []
-        deps |> List.iter (fun prop -> tracker.AddCommandDependency(cmd, getPropertyNameFromExpression prop)) 
+        deps |> List.iter (fun prop -> (tracker :?> DependencyTracker).AddCommandDependencyI(cmd, getPropertyNameFromExpression prop)) 
 
     member __.EventStream = eventStream.Publish :> IObservable<'a>
 

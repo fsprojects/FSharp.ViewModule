@@ -60,20 +60,37 @@ type IValidationTracker =
     /// Add a watcher for a property to validate
     abstract AddPropertyValidationWatcher : string -> (unit -> string list) -> unit
 
+/// This interface is a tag for implementation of extension methods. Do not implement externally.
 type IDependencyTracker =
-    abstract AddPropertyDependencies : string * string list -> unit
-    abstract AddPropertyDependency : string * string -> unit
-    abstract AddCommandDependency : INotifyCommand * string -> unit
+    interface end
     
-    // F# API signatures
-    // abstract AddPropertyDependency : Expr * Expr -> unit
-    // abstract AddPropertyDependencies : Expr * Expr list -> unit
-    // abstract AddCommandDependency : INotifyCommand * Expr -> unit
-
-    // C# API signatures
-    // abstract AddPropertyDependencies : property : Expression<Func<obj>> * [<ParamArray>] dependencies : Expression<Func<obj>> array -> unit
-    // abstract AddPropertyDependency : property: Expression<Func<obj>> * dependency : Expression<Func<obj>> -> unit
-    // abstract AddCommandDependency : command : INotifyCommand * dependency : Expression<Func<obj>> -> unit
+    // DependencyTracker is the only implementation of IDependencyTracker and implements the following members:
+    //
+    // AddPropertyDependenciesI : string * string list -> unit
+    // AddPropertyDependencyI : string * string -> unit
+    // AddCommandDependencyI : INotifyCommand * string -> unit
+    
+    // The following can be implemented as extension methods by casting to DependencyTracker for the 
+    // F# API in the ViewModule.FSharp namespace:
+    //
+    // AddPropertyDependencies : string * string list -> unit
+    // AddPropertyDependency : string * string -> unit
+    // AddPropertyDependency : Expr * Expr -> unit
+    // AddPropertyDependencies : Expr * Expr list -> unit
+    //
+    //
+    // The following can be implemented via extension methods by casting to DependencyTracker for the
+    // C# API in the ViewModule.CSharp namespace:
+    //
+    // AddPropertyDepenencies : property : string  * dependency : string -> unit
+    // AddPropertyDepenencies : property : string  * dependency : string * [<ParamArray>] rest : string array -> unit
+    //
+    //
+    // In addition, the following extension methods are implemented in the namespace ViewModule.CSharp.Expressions
+    // to support LINQ Expression trees for C# versions which do not have nameof:
+    //
+    // AddPropertyDepenency : property : Expression<Func<obj>> * dependency : Expression<Func<obj>> -> unit
+    // AddPropertyDepenency : property : Expression<Func<obj>> * dependency : Expression<Func<obj>> * [<ParamArray>] rest : Expression<Func<obj>> array -> unit
 
 /// <summary>Extension of INotifyPropertyChanged with a public method to fire the PropertyChanged event</summary>
 /// <remarks>This type should provide a constructor which accepts no arguments, and one which accepts a Model</remarks>

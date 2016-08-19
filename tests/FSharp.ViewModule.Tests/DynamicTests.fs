@@ -1,10 +1,8 @@
-﻿module FSharp.ViewModule.Tests.DynamicViewModel
+﻿module ViewModule.Tests.DynamicViewModel
 
-open FSharp.ViewModule
+open ViewModule
 open NUnit.Framework
 open System.ComponentModel
-
-open DynamicVM
 
 [<Test>]
 let ``DynamicViewModel add property works`` () =

@@ -150,7 +150,7 @@ module Validators =
         workflow(value)
 
 
-namespace ViewModule.CSharp.Validation
+namespace ViewModule.Validation.CSharp
 
 open System
 open System.Runtime.CompilerServices
