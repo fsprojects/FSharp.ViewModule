@@ -1,8 +1,11 @@
 ﻿using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
-using CSharp.ViewModule.Validation;
 using System.Threading;
+
+using ViewModule;
+using ViewModule.CSharp;
+using ViewModule.Validation.CSharp;
 
 namespace CSharp.ViewModule.HelloWorld
 {
@@ -18,13 +21,13 @@ namespace CSharp.ViewModule.HelloWorld
         {
             _firstName = Factory.Backing(nameof(FirstName), "Anton", 
                 Validators.NotNullOrWhitespace()
-                .Concat(Validators.NotEqual("Foo")));
+                .Then(Validators.NotEqual("Foo")));
 
             _lastName = Factory.Backing(nameof(LastName), "Tcholakov",
                 Validators.NotNullOrWhitespace()
-                .Concat(Validators.NotEqual("Bar")));
+                .Then(Validators.NotEqual("Bar")));
 
-            _sayHello = Factory.CommandAsyncChecked(async (ui, ct) =>
+            _sayHello = Factory.CommandAsyncChecked(async ct =>
             {
                 try
                 {

@@ -82,7 +82,7 @@ type IDependencyTracker =
     // The following can be implemented via extension methods by casting to DependencyTracker for the
     // C# API in the ViewModule.CSharp namespace:
     //
-    // AddPropertyDepenencies : property : string  * dependency : string -> unit
+    // AddPropertyDepenency : property : string  * dependency : string -> unit
     // AddPropertyDepenencies : property : string  * dependency : string * [<ParamArray>] rest : string array -> unit
     //
     //
@@ -90,7 +90,7 @@ type IDependencyTracker =
     // to support LINQ Expression trees for C# versions which do not have nameof:
     //
     // AddPropertyDepenency : property : Expression<Func<obj>> * dependency : Expression<Func<obj>> -> unit
-    // AddPropertyDepenency : property : Expression<Func<obj>> * dependency : Expression<Func<obj>> * [<ParamArray>] rest : Expression<Func<obj>> array -> unit
+    // AddPropertyDepenencies : property : Expression<Func<obj>> * dependency : Expression<Func<obj>> * [<ParamArray>] rest : Expression<Func<obj>> array -> unit
 
 /// <summary>Extension of INotifyPropertyChanged with a public method to fire the PropertyChanged event</summary>
 /// <remarks>This type should provide a constructor which accepts no arguments, and one which accepts a Model</remarks>

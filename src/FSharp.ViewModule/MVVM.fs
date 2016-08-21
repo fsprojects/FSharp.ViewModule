@@ -97,6 +97,7 @@ type IViewModelPropertyFactory =
     // (note that property names can either be supplied using Linq expression trees of type Expression<Func<'T>> or via strings, typically
     //  obtained via nameof(Property)).
     //
+    // Backing<'TProp> : property : string * defaultValue:'TProp -> INotifyingValue<'TProp>
     // Backing<'TProp> : property : string * defaultValue:'TProp * validate : Validator<'TProp> -> INotifyingValue<'TProp>
     // Backing<'TProp> : property : string * defaultValue:'TProp * validate: Func<'TProp, string seq> -> INotifyingValue<'TProp>
     // FromFuncs<'TProp> : property : string * getter : Func<'TProp> * setter: Action<'TProp> -> INotifyingValue<'TProp>
@@ -123,6 +124,7 @@ type IViewModelPropertyFactory =
     // In addition, the following extension methods are implemented in the namespace ViewModule.CSharp.Expressions
     // to support LINQ Expression trees for C# versions which do not have nameof:
     //
+    // Backing<'TProp> : property : Expression<Func<'TProp>> * defaultValue:'TProp -> INotifyingValue<'TProp>
     // Backing<'TProp> : property : Expression<Func<'TProp>> * defaultValue:'TProp * validate : Validator<'TProp> -> INotifyingValue<'TProp>
     // Backing<'TProp> : property : Expression<Func<'TProp>> * defaultValue:'TProp * validate: Func<'TProp, string seq> -> INotifyingValue<'TProp>
     // FromFuncs<'TProp> : property : Expression<Func<'TProp>> * getter : Func<'TProp> * setter: Action<'TProp> -> INotifyingValue<'TProp>
@@ -133,7 +135,6 @@ type IViewModelPropertyFactory =
     // CommandAsyncChecked : createTask : Func<Task> * canExecute: Func<bool> * [<ParamArray>] dependentProperties : Expression<Func<obj>> array -> IAsyncNotifyCommand
     // CommandAsyncChecked : createTask : Func<CancellationToken, Task> * canExecute: Func<bool> * token : CancellationToken * [<ParamArray>] dependentProperties : Expression<Func<obj>> array -> IAsyncNotifyCommand
     // CommandAsyncChecked : createTask : Func<CancellationToken, Task> * canExecute: Func<bool> * token : CancellationToken * onCancel : Action<OperationCanceledException> * [<ParamArray>] dependentProperties : Expression<Func<obj>> array -> IAsyncNotifyCommand
-    //
     // CommandAsyncParamChecked<'TParam> : createTask : Func<'TParam, Task> * canExecute : Func<'TParam, bool> * [<ParamArray>] dependentProperties : Expression<Func<obj>> array -> IAsyncNotifyCommand    
     // CommandAsyncParamChecked<'TParam> : createTask : Func<'TParam, CancellationToken, Task> * canExecute : Func<'TParam, bool> * token : CancellationToken * [<ParamArray>] dependentProperties : Expression<Func<obj>> array -> IAsyncNotifyCommand    
     // CommandAsyncParamChecked<'TParam> : createTask : Func<'TParam, CancellationToken, Task> * canExecute : Func<'TParam, bool> * token : CancellationToken * onCancel : Action<OperationCanceledException> * [<ParamArray>] dependentProperties : Expression<Func<obj>> array -> IAsyncNotifyCommand    
@@ -397,14 +398,17 @@ module Extensions =
         member x.CommandAsync (asyncWorfklow : SynchronizationContext -> Async<unit>, ?token : CancellationToken, ?onCancel : OperationCanceledException -> unit) =
             (x :?> ViewModelUntyped).CommandAsyncI (asyncWorfklow, ?token = token, ?onCancel = onCancel)
 
-        member x.CommandAsyncChecked (asyncWorkflow : SynchronizationContext -> Async<unit>, canExecute : unit -> bool, ?dependentProperties : Expr list, ?token : CancellationToken, ?onCancel : OperationCanceledException -> unit) =
+        member x.CommandAsyncChecked (asyncWorkflow : SynchronizationContext -> Async<unit>, canExecute : unit -> bool, ?dependentProperties : Expr list,
+                                      ?token : CancellationToken, ?onCancel : OperationCanceledException -> unit) =
             let deps = dependentProperties |> Option.map (List.map getPropertyNameFromExpression)
             (x :?> ViewModelUntyped).CommandAsyncCheckedI(asyncWorkflow, canExecute, ?dependentProperties = deps, ?token = token, ?onCancel = onCancel) 
 
-        member x.CommandAsyncParam (asyncWorkflow : SynchronizationContext -> 'a -> Async<unit>, ?token : CancellationToken, ?onCancel : OperationCanceledException -> unit) =
+        member x.CommandAsyncParam (asyncWorkflow : SynchronizationContext -> 'a -> Async<unit>, ?token : CancellationToken,
+                                    ?onCancel : OperationCanceledException -> unit) =
             (x :?> ViewModelUntyped).CommandAsyncParamI(asyncWorkflow, ?token = token, ?onCancel = onCancel)
 
-        member x.CommandAsyncParamChecked (asyncWorkflow : SynchronizationContext -> 'a -> Async<unit>, canExecute : 'a -> bool, ?dependentProperties : Expr list, ?token : CancellationToken, ?onCancel : OperationCanceledException -> unit) =
+        member x.CommandAsyncParamChecked (asyncWorkflow : SynchronizationContext -> 'a -> Async<unit>, canExecute : 'a -> bool, ?dependentProperties : Expr list,
+                                           ?token : CancellationToken, ?onCancel : OperationCanceledException -> unit) =
             let deps = dependentProperties |> Option.map (List.map getPropertyNameFromExpression)
             (x :?> ViewModelUntyped).CommandAsyncParamCheckedI(asyncWorkflow, canExecute, ?dependentProperties = deps, ?token = token, ?onCancel = onCancel)
 
@@ -430,141 +434,214 @@ open ViewModule.Internal
 open ViewModule.Validation.CSharp
 
 open System
-open System.Linq.Expressions
 open System.Runtime.CompilerServices
 open System.Threading
 open System.Threading.Tasks
 
 [<Extension>]
-module Extensions =
+type Extensions =
     
-    let private asyncFromTaskFunc (createTask : Func<Task>) =
-        createTask.Invoke () |> Async.AwaitIAsyncResult |> Async.Ignore
+    [<Extension>]
+    static member AddProperty(dependencyTracker : IDependencyTracker, property : string, dependency : string) =
+        (dependencyTracker :?> DependencyTracker).AddPropertyDependencyI(property, dependency)
 
-    let private asyncFromTaskFuncCancellable (createTask : Func<CancellationToken, Task>) = async {
-        let! ct = Async.CancellationToken
-        do! createTask.Invoke ct |> Async.AwaitIAsyncResult |> Async.Ignore }
+    [<Extension>]
+    static member AddPropertyDependencies(dependencyTracker : IDependencyTracker, property : string, dependency : string, [<ParamArray>] rest : string array) =
+        (dependencyTracker :?> DependencyTracker).AddPropertyDependenciesI(property, dependency :: (List.ofArray rest))
     
-    let private asyncFromTaskParamFunc (createTask : Func<'a, Task>) param =
-        createTask.Invoke param |> Async.AwaitIAsyncResult |> Async.Ignore
+    [<Extension>]
+    static member Backing<'TProp> (factory : IViewModelPropertyFactory, property : string, defaultValue : 'TProp) =
+        (factory :?> ViewModelUntyped).BackingI(property, defaultValue)
 
-    let private asyncFromTaskParamFuncCancellable (createTask : Func<'a, CancellationToken, Task>) param = async {
-        let! ct = Async.CancellationToken
-        do! createTask.Invoke(param, ct) |> Async.AwaitIAsyncResult |> Async.Ignore }
+    [<Extension>]
+    static member Backing<'TProp> (factory : IViewModelPropertyFactory, property : string, defaultValue : 'TProp, validator : Validator<'TProp>) =
+        let validate = match validator with Validator v -> v
+        (factory :?> ViewModelUntyped).BackingI(property, defaultValue, validate)
 
-    // interface CSharp.ViewModule.IViewModelPropertyFactory with
-    //     member this.Backing<'a> (property : string, defaultValue : 'a, validate : CSharp.ViewModule.Validation.Validator<'a>) =
-    //         let v = match validate with CSharp.ViewModule.Validation.Validator v -> v
-    //         let validateFun = Validators.validate property >> v.Invoke >> result
-    //         NotifyingValueBackingField<'a>(property, propChanged, defaultValue, validationTracker, validateFun) :> CSharp.ViewModule.INotifyingValue<'a>
-    // 
-    //     member this.Backing<'a> (property : Expression<Func<'a>>, defaultValue : 'a, validate : CSharp.ViewModule.Validation.Validator<'a>) =
-    //         let v = match validate with CSharp.ViewModule.Validation.Validator v -> v
-    //         let name = getPropertyNameFromLinqExpression property
-    //         let validateFun = Validators.validate name >> v.Invoke >> result
-    //         NotifyingValueBackingField<'a>(name, propChanged, defaultValue, validationTracker, validateFun) :> CSharp.ViewModule.INotifyingValue<'a>
-    // 
-    //     member this.Backing<'a> (property : string, defaultValue : 'a, validate : Func<'a, string seq>) =
-    //         let validateFun = if validate <> null then validate.Invoke >> List.ofSeq else (fun _ -> [])
-    //         NotifyingValueBackingField<'a>(property, propChanged, defaultValue, validationTracker, validateFun) :> CSharp.ViewModule.INotifyingValue<'a>
-    // 
-    //     member this.Backing<'a> (property : Expression<Func<'a>>, defaultValue : 'a, validate : Func<'a, string seq>) =
-    //         let validateFun = if validate <> null then validate.Invoke >> List.ofSeq else (fun _ -> [])
-    //         NotifyingValueBackingField<'a>(getPropertyNameFromLinqExpression property, propChanged, defaultValue, validationTracker, validateFun) :> CSharp.ViewModule.INotifyingValue<'a>
-    // 
-    //     member this.FromFuncs<'a> (property : string, getter : Func<'a>, setter : Action<'a>) =
-    //         NotifyingValueFuncs<'a>(property, propChanged, getter.Invoke, setter.Invoke) :> CSharp.ViewModule.INotifyingValue<'a>
-    // 
-    //     member this.FromFuncs<'a> (property : Expression<Func<'a>>, getter : Func<'a>, setter : Action<'a>) =
-    //         NotifyingValueFuncs<'a>(getPropertyNameFromLinqExpression property, propChanged, getter.Invoke, setter.Invoke) :> CSharp.ViewModule.INotifyingValue<'a>
-    // 
-    //     member this.CommandAsync (createTask : Func<SynchronizationContext, CancellationToken, Task>, token : CancellationToken, onCancel : Action<OperationCanceledException>) =
-    //         let oc = if onCancel <> null then onCancel.Invoke else ignore
-    //         let cmd = Commands.createAsyncInternal (asyncFromTask createTask) getExecuting setExecuting (fun () -> true) token oc
-    //         let opEx = Some [ <@@ this.OperationExecuting @@> ]
-    //         addCommandDependencies cmd opEx
-    //         cmd
-    //     
-    //     member this.CommandAsyncChecked (createTask : Func<SynchronizationContext, CancellationToken, Task>, canExecute : Func<bool>, token : CancellationToken, onCancel : Action<OperationCanceledException>, [<ParamArray>] dependentProperties : Expression<Func<obj>> array) =
-    //         let cmd = Commands.createAsyncInternal (asyncFromTask createTask)  getExecuting setExecuting canExecute.Invoke token onCancel.Invoke
-    //         let opEx = Some [ <@@ this.OperationExecuting @@> ]
-    //         addCommandDependencies cmd opEx
-    //         addCommandDependenciesLinq cmd dependentProperties
-    //         cmd
-    //     
-    //     member this.CommandAsyncChecked (createTask : Func<SynchronizationContext, CancellationToken, Task>, canExecute : Func<bool>, token : CancellationToken, [<ParamArray>] dependentProperties : Expression<Func<obj>> array) =
-    //         (this :> CSharp.ViewModule.IViewModelPropertyFactory).CommandAsyncChecked(createTask, canExecute, token, ignore, dependentProperties)
-    // 
-    //     member this.CommandAsyncChecked (createTask : Func<SynchronizationContext, CancellationToken, Task>, canExecute : Func<bool>, [<ParamArray>] dependentProperties : Expression<Func<obj>> array) =
-    //         (this :> CSharp.ViewModule.IViewModelPropertyFactory).CommandAsyncChecked(createTask, canExecute, CancellationToken.None, dependentProperties)
-    // 
-    //     member this.CommandAsyncChecked (createTask : Func<SynchronizationContext, CancellationToken, Task>, canExecute : Func<bool>, token : CancellationToken, onCancel : Action<OperationCanceledException>, [<ParamArray>] dependentProperties : string array) =
-    //         let cmd = Commands.createAsyncInternal (asyncFromTask createTask) getExecuting setExecuting canExecute.Invoke token onCancel.Invoke
-    //         let opEx = Some [ <@@ this.OperationExecuting @@> ]
-    //         addCommandDependencies cmd opEx
-    //         addCommandDependenciesString cmd dependentProperties
-    //         cmd
-    // 
-    //     member this.CommandAsyncChecked (createTask : Func<SynchronizationContext, CancellationToken, Task>, canExecute : Func<bool>, token : CancellationToken, [<ParamArray>] dependentProperties : string array) =
-    //         (this :> CSharp.ViewModule.IViewModelPropertyFactory).CommandAsyncChecked(createTask, canExecute, token, ignore, dependentProperties)
-    // 
-    //     member this.CommandAsyncChecked (createTask : Func<SynchronizationContext, CancellationToken, Task>, canExecute : Func<bool>, [<ParamArray>] dependentProperties : string array) =
-    //         (this :> CSharp.ViewModule.IViewModelPropertyFactory).CommandAsyncChecked(createTask, canExecute, CancellationToken.None, dependentProperties)
-    // 
-    //     member this.CommandAsyncParam<'a> (createTask : Func<SynchronizationContext, 'a, CancellationToken, Task>, token : CancellationToken, onCancel : Action<OperationCanceledException>) =
-    //         let oc = if onCancel <> null then onCancel.Invoke else ignore
-    //         let cmd = Commands.createAsyncParamInternal (asyncFromTaskParam createTask) getExecuting setExecuting (fun _ -> true) token oc
-    //         let opEx = Some [ <@@ this.OperationExecuting @@> ]
-    //         addCommandDependencies cmd opEx
-    //         cmd
-    // 
-    //     member this.CommandAsyncParamChecked<'a> (createTask : Func<SynchronizationContext, 'a, CancellationToken, Task>, canExecute : Func<'a, bool>, token : CancellationToken, onCancel : Action<OperationCanceledException>, [<ParamArray>] dependentProperties : Expression<Func<obj>> array) =
-    //         let cmd = Commands.createAsyncParamInternal (asyncFromTaskParam createTask) getExecuting setExecuting canExecute.Invoke token onCancel.Invoke
-    //         let opEx = Some [ <@@ this.OperationExecuting @@> ]
-    //         addCommandDependencies cmd opEx
-    //         addCommandDependenciesLinq cmd dependentProperties
-    //         cmd
-    // 
-    //     member this.CommandAsyncParamChecked<'a> (createTask : Func<SynchronizationContext, 'a, CancellationToken, Task>, canExecute : Func<'a, bool>, token : CancellationToken, [<ParamArray>] dependentProperties : Expression<Func<obj>> array) =
-    //         (this :> CSharp.ViewModule.IViewModelPropertyFactory).CommandAsyncParamChecked(createTask, canExecute, token, ignore, dependentProperties)
-    // 
-    //     member this.CommandAsyncParamChecked<'a> (createTask : Func<SynchronizationContext, 'a, CancellationToken, Task>, canExecute : Func<'a, bool>, [<ParamArray>] dependentProperties : Expression<Func<obj>> array) =
-    //         (this :> CSharp.ViewModule.IViewModelPropertyFactory).CommandAsyncParamChecked(createTask, canExecute, CancellationToken.None, dependentProperties)
-    // 
-    //     member this.CommandAsyncParamChecked<'a> (createTask : Func<SynchronizationContext, 'a, CancellationToken, Task>, canExecute : Func<'a, bool>, token : CancellationToken, onCancel : Action<OperationCanceledException>, [<ParamArray>] dependentProperties : string array) =
-    //         let cmd = Commands.createAsyncParamInternal (asyncFromTaskParam createTask) getExecuting setExecuting canExecute.Invoke token onCancel.Invoke
-    //         let opEx = Some [ <@@ this.OperationExecuting @@> ]
-    //         addCommandDependencies cmd opEx
-    //         addCommandDependenciesString cmd dependentProperties
-    //         cmd
-    // 
-    //     member this.CommandAsyncParamChecked<'a> (createTask : Func<SynchronizationContext, 'a, CancellationToken, Task>, canExecute : Func<'a, bool>, token : CancellationToken, [<ParamArray>] dependentProperties : string array) =
-    //         (this :> CSharp.ViewModule.IViewModelPropertyFactory).CommandAsyncParamChecked(createTask, canExecute, token, ignore, dependentProperties)
-    // 
-    //     member this.CommandAsyncParamChecked<'a> (createTask : Func<SynchronizationContext, 'a, CancellationToken, Task>, canExecute : Func<'a, bool>, [<ParamArray>] dependentProperties : string array) =
-    //         (this :> CSharp.ViewModule.IViewModelPropertyFactory).CommandAsyncParamChecked(createTask, canExecute, CancellationToken.None, dependentProperties)
-    // 
-    //     member this.CommandSync (execute : Action) = Commands.createSyncInternal execute.Invoke (fun () -> true)
-    // 
-    //     member this.CommandSyncParam<'a> (execute : Action<'a>) =  Commands.createSyncParamInternal execute.Invoke (fun _ -> true)
-    // 
-    //     member this.CommandSyncChecked (execute : Action, canExecute : Func<bool>, [<ParamArray>] dependentProperties : Expression<Func<obj>> array) =
-    //         let cmd = Commands.createSyncInternal execute.Invoke canExecute.Invoke
-    //         addCommandDependenciesLinq cmd dependentProperties
-    //         cmd
-    // 
-    //     member this.CommandSyncChecked (execute : Action, canExecute : Func<bool>, [<ParamArray>] dependentProperties : string array) =
-    //         let cmd = Commands.createSyncInternal execute.Invoke canExecute.Invoke
-    //         addCommandDependenciesString cmd dependentProperties
-    //         cmd
-    // 
-    //     member this.CommandSyncParamChecked<'a> (execute : Action<'a>, canExecute : Func<'a, bool>, [<ParamArray>] dependentProperties : Expression<Func<obj>> array) =
-    //         let cmd = Commands.createSyncParamInternal execute.Invoke canExecute.Invoke
-    //         addCommandDependenciesLinq cmd dependentProperties
-    //         cmd
-    // 
-    //     member this.CommandSyncParamChecked<'a> (execute : Action<'a>, canExecute : Func<'a, bool>, [<ParamArray>] dependentProperties : string array) =
-    //         let cmd = Commands.createSyncParamInternal execute.Invoke canExecute.Invoke
-    //         addCommandDependenciesString cmd dependentProperties
-    //         cmd
-    // 
+    [<Extension>]
+    static member Backing<'TProp> (factory : IViewModelPropertyFactory, property : string, defaultValue : 'TProp, validate : Func<'TProp, string seq>) =
+        (factory :?> ViewModelUntyped).BackingI(property, defaultValue, validate.Invoke >> List.ofSeq)
+
+    [<Extension>]
+    static member FromFuncs<'TProp> (factory : IViewModelPropertyFactory, property : string, getter : Func<'TProp>, setter : Action<'TProp>) =
+        (factory :?> ViewModelUntyped).FromFuncsI(property, getter.Invoke, setter.Invoke)
+    
+    [<Extension>]
+    static member CommandSync (factory : IViewModelPropertyFactory, execute : Action) =
+        (factory :?> ViewModelUntyped).CommandSyncI(execute.Invoke)
+
+    [<Extension>]
+    static member CommandSyncParam<'TParam> (factory : IViewModelPropertyFactory, execute : Action<'TParam>) =
+        (factory :?> ViewModelUntyped).CommandSyncParamI(execute.Invoke)
+
+    [<Extension>]
+    static member CommandSyncChecked (factory : IViewModelPropertyFactory, execute : Action, canExecute : Func<bool>,
+                                      [<ParamArray>] dependentProperties : string array) =
+        (factory :?> ViewModelUntyped).CommandSyncCheckedI(execute.Invoke, canExecute.Invoke, dependentProperties |> List.ofArray)
+
+    [<Extension>]
+    static member CommandSyncParamChecked<'TParam> (factory : IViewModelPropertyFactory, execute : Action<'TParam>, canExecute : Func<'TParam, bool>,
+                                                    [<ParamArray>] dependentProperties : string array) =
+        (factory :?> ViewModelUntyped).CommandSyncParamCheckedI(execute.Invoke, canExecute.Invoke, dependentProperties |> List.ofArray)
+    
+    [<Extension>]
+    static member CommandAsync (factory : IViewModelPropertyFactory, createTask : Func<Task>) =
+        (factory :?> ViewModelUntyped).CommandAsyncI(fun _ -> Async.fromTaskFunc createTask)
+
+    [<Extension>]
+    static member CommandAsync (factory : IViewModelPropertyFactory, createTask : Func<CancellationToken, Task>, token : CancellationToken) =
+        (factory :?> ViewModelUntyped).CommandAsyncI((fun _ -> Async.fromTaskFuncCancellable createTask), token)
+    
+    [<Extension>]
+    static member CommandAsync (factory : IViewModelPropertyFactory, createTask : Func<CancellationToken, Task>, token : CancellationToken,
+                                onCancel : Action<OperationCanceledException>) =
+        (factory :?> ViewModelUntyped).CommandAsyncI((fun _ -> Async.fromTaskFuncCancellable createTask), token, onCancel.Invoke)
+
+    [<Extension>]
+    static member CommandAsyncChecked (factory : IViewModelPropertyFactory, createTask : Func<Task>, canExecute : Func<bool>,
+                                       [<ParamArray>] dependentProperties : string array) =
+        (factory :?> ViewModelUntyped).CommandAsyncCheckedI((fun _ -> Async.fromTaskFunc createTask), canExecute.Invoke, dependentProperties |> List.ofArray)
+
+    [<Extension>]
+    static member CommandAsyncChecked (factory : IViewModelPropertyFactory, createTask : Func<CancellationToken, Task>, canExecute : Func<bool>,
+                                       token : CancellationToken, [<ParamArray>] dependentProperties : string array) =
+        (factory :?> ViewModelUntyped).CommandAsyncCheckedI((fun _ -> Async.fromTaskFuncCancellable createTask), canExecute.Invoke,
+                                                            dependentProperties |> List.ofArray, token)
+
+    [<Extension>]
+    static member CommandAsyncChecked (factory : IViewModelPropertyFactory, createTask : Func<CancellationToken, Task>, canExecute : Func<bool>,
+                                       token : CancellationToken, onCancel : Action<OperationCanceledException>, [<ParamArray>] dependentProperties : string array) =
+        (factory :?> ViewModelUntyped).CommandAsyncCheckedI((fun _ -> Async.fromTaskFuncCancellable createTask), canExecute.Invoke,
+                                                            dependentProperties |> List.ofArray, token, onCancel.Invoke)
+
+    [<Extension>]
+    static member CommandAsyncParam<'TParam> (factory : IViewModelPropertyFactory, createTask : Func<'TParam, Task>) =
+        (factory :?> ViewModelUntyped).CommandAsyncParamI(fun _ -> Async.fromTaskParamFunc createTask)
+        
+    [<Extension>]
+    static member CommandAsyncParam<'TParam> (factory : IViewModelPropertyFactory, createTask : Func<'TParam, CancellationToken, Task>, token : CancellationToken) =
+        (factory :?> ViewModelUntyped).CommandAsyncParamI((fun _ -> Async.FromTaskParamFuncCancellable createTask), token)
+                
+    [<Extension>]
+    static member CommandAsyncParam<'TParam> (factory : IViewModelPropertyFactory, createTask : Func<'TParam, CancellationToken, Task>, token : CancellationToken,
+                                              onCancel : Action<OperationCanceledException>) =
+        (factory :?> ViewModelUntyped).CommandAsyncParamI((fun _ -> Async.FromTaskParamFuncCancellable createTask), token, onCancel.Invoke)
+
+    [<Extension>]
+    static member CommandAsyncParamChecked<'TParam> (factory : IViewModelPropertyFactory, createTask : Func<'TParam, Task>, canExecute : Func<'TParam, bool>,
+                                                     [<ParamArray>] dependentProperties : string array) =
+        (factory :?> ViewModelUntyped).CommandAsyncParamCheckedI((fun _ -> Async.fromTaskParamFunc createTask), canExecute.Invoke, dependentProperties |> List.ofArray)
+
+    [<Extension>]
+    static member CommandAsyncParamChecked<'TParam> (factory : IViewModelPropertyFactory, createTask : Func<'TParam, CancellationToken, Task>,
+                                                     canExecute : Func<'TParam, bool>, token : CancellationToken, [<ParamArray>] dependentProperties : string array) =
+        (factory :?> ViewModelUntyped).CommandAsyncParamCheckedI((fun _ -> Async.FromTaskParamFuncCancellable createTask), canExecute.Invoke,
+                                                                 dependentProperties |> List.ofArray, token)
+
+    [<Extension>]
+    static member CommandAsyncParamChecked<'TParam> (factory : IViewModelPropertyFactory, createTask : Func<'TParam, CancellationToken, Task>,
+                                                     canExecute : Func<'TParam, bool>, token : CancellationToken, onCancel : Action<OperationCanceledException>,
+                                                     [<ParamArray>] dependentProperties : string array) =
+        (factory :?> ViewModelUntyped).CommandAsyncParamCheckedI((fun _ -> Async.FromTaskParamFuncCancellable createTask), canExecute.Invoke,
+                                                                 dependentProperties |> List.ofArray, token, onCancel.Invoke)
+    
+
+namespace ViewModule.CSharp.Expressions
+
+open ViewModule
+open ViewModule.Internal
+open ViewModule.Validation.CSharp
+
+open System
+open System.Linq.Expressions
+open System.Runtime.CompilerServices
+open System.Threading
+open System.Threading.Tasks
+
+type PropertyExpr = Expression<Func<obj>>
+
+[<Extension>]
+type Extensions =
+    
+    [<Extension>]
+    static member AddProperty(dependencyTracker : IDependencyTracker, property : PropertyExpr, dependency : PropertyExpr) =
+        let property'   = getPropertyNameFromLinqExpression property
+        let dependency' = getPropertyNameFromLinqExpression dependency
+        (dependencyTracker :?> DependencyTracker).AddPropertyDependencyI(property', dependency')
+
+    [<Extension>]
+    static member AddPropertyDependencies(dependencyTracker : IDependencyTracker, property : PropertyExpr, dependency : PropertyExpr,
+                                          [<ParamArray>] rest : PropertyExpr array) =
+        let property'     = getPropertyNameFromLinqExpression property
+        let dependencies' = dependency :: (List.ofArray rest) |> List.map getPropertyNameFromLinqExpression
+        (dependencyTracker :?> DependencyTracker).AddPropertyDependenciesI(property', dependencies')
+
+    [<Extension>]
+    static member Backing<'TProp> (factory : IViewModelPropertyFactory, property : PropertyExpr, defaultValue : 'TProp) =
+        (factory :?> ViewModelUntyped).BackingI(getPropertyNameFromLinqExpression property, defaultValue)
+
+    [<Extension>]
+    static member Backing<'TProp> (factory : IViewModelPropertyFactory, property : PropertyExpr, defaultValue : 'TProp, validator : Validator<'TProp>) =
+        let validate = match validator with Validator v -> v
+        (factory :?> ViewModelUntyped).BackingI(getPropertyNameFromLinqExpression property, defaultValue, validate)
+
+    [<Extension>]
+    static member Backing<'TProp> (factory : IViewModelPropertyFactory, property : PropertyExpr, defaultValue : 'TProp, validate : Func<'TProp, string seq>) =
+        (factory :?> ViewModelUntyped).BackingI(getPropertyNameFromLinqExpression property, defaultValue, validate.Invoke >> List.ofSeq)
+
+    [<Extension>]
+    static member FromFuncs<'TProp> (factory : IViewModelPropertyFactory, property : PropertyExpr, getter : Func<'TProp>, setter : Action<'TProp>) =
+        (factory :?> ViewModelUntyped).FromFuncsI(getPropertyNameFromLinqExpression property, getter.Invoke, setter.Invoke)
+    
+    [<Extension>]
+    static member CommandSyncChecked (factory : IViewModelPropertyFactory, execute : Action, canExecute : Func<bool>,
+                                      [<ParamArray>] dependentProperties : PropertyExpr array) =
+        (factory :?> ViewModelUntyped).CommandSyncCheckedI(execute.Invoke, canExecute.Invoke,
+                                                           dependentProperties |> List.ofArray |> List.map getPropertyNameFromLinqExpression)
+
+    [<Extension>]
+    static member CommandSyncParamChecked<'TParam> (factory : IViewModelPropertyFactory, execute : Action<'TParam>, canExecute : Func<'TParam, bool>,
+                                                    [<ParamArray>] dependentProperties : PropertyExpr array) =
+        (factory :?> ViewModelUntyped).CommandSyncParamCheckedI(execute.Invoke, canExecute.Invoke,
+                                                                dependentProperties |> List.ofArray |> List.map getPropertyNameFromLinqExpression)
+    
+    [<Extension>]
+    static member CommandAsyncChecked (factory : IViewModelPropertyFactory, createTask : Func<Task>, canExecute : Func<bool>,
+                                       [<ParamArray>] dependentProperties : PropertyExpr array) =
+        (factory :?> ViewModelUntyped).CommandAsyncCheckedI((fun _ -> Async.fromTaskFunc createTask), canExecute.Invoke,
+                                                            dependentProperties |> List.ofArray |> List.map getPropertyNameFromLinqExpression)
+
+    [<Extension>]
+    static member CommandAsyncChecked (factory : IViewModelPropertyFactory, createTask : Func<CancellationToken, Task>, canExecute : Func<bool>,
+                                       token : CancellationToken, [<ParamArray>] dependentProperties : PropertyExpr array) =
+        (factory :?> ViewModelUntyped).CommandAsyncCheckedI((fun _ -> Async.fromTaskFuncCancellable createTask), canExecute.Invoke,
+                                                            dependentProperties |> List.ofArray |> List.map getPropertyNameFromLinqExpression , token)
+
+    [<Extension>]
+    static member CommandAsyncChecked (factory : IViewModelPropertyFactory, createTask : Func<CancellationToken, Task>, canExecute : Func<bool>,
+                                       token : CancellationToken, onCancel : Action<OperationCanceledException>,
+                                       [<ParamArray>] dependentProperties : PropertyExpr array) =
+        (factory :?> ViewModelUntyped).CommandAsyncCheckedI((fun _ -> Async.fromTaskFuncCancellable createTask), canExecute.Invoke,
+                                                            dependentProperties |> List.ofArray |> List.map getPropertyNameFromLinqExpression, token,
+                                                            onCancel.Invoke)
+    
+    [<Extension>]
+    static member CommandAsyncParamChecked<'TParam> (factory : IViewModelPropertyFactory, createTask : Func<'TParam, Task>, canExecute : Func<'TParam, bool>,
+                                                     [<ParamArray>] dependentProperties : PropertyExpr array) =
+        (factory :?> ViewModelUntyped).CommandAsyncParamCheckedI((fun _ -> Async.fromTaskParamFunc createTask), canExecute.Invoke,
+                                                                 dependentProperties |> List.ofArray |> List.map getPropertyNameFromLinqExpression)
+
+    [<Extension>]
+    static member CommandAsyncParamChecked<'TParam> (factory : IViewModelPropertyFactory, createTask : Func<'TParam, CancellationToken, Task>,
+                                                     canExecute : Func<'TParam, bool>, token : CancellationToken, [<ParamArray>] dependentProperties : PropertyExpr array) =
+        (factory :?> ViewModelUntyped).CommandAsyncParamCheckedI((fun _ -> Async.FromTaskParamFuncCancellable createTask), canExecute.Invoke,
+                                                                 dependentProperties |> List.ofArray |> List.map getPropertyNameFromLinqExpression, token)
+
+    [<Extension>]
+    static member CommandAsyncParamChecked<'TParam> (factory : IViewModelPropertyFactory, createTask : Func<'TParam, CancellationToken, Task>,
+                                                     canExecute : Func<'TParam, bool>, token : CancellationToken, onCancel : Action<OperationCanceledException>,
+                                                     [<ParamArray>] dependentProperties : PropertyExpr array) =
+        (factory :?> ViewModelUntyped).CommandAsyncParamCheckedI((fun _ -> Async.FromTaskParamFuncCancellable createTask), canExecute.Invoke,
+                                                                 dependentProperties |> List.ofArray |> List.map getPropertyNameFromLinqExpression,
+                                                                 token, onCancel.Invoke)
+    

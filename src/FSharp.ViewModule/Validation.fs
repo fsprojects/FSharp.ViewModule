@@ -168,7 +168,11 @@ type Validator<'a> = internal Validator of (ValidationResult<'a> -> ValidationRe
 
 [<Extension>]
 type ValidatorExensions() = 
-       
+    
+    [<Extension>]    
+    static member Then(Validator validator, Validator other) =
+        Validator (validator >> other)
+               
     [<Extension>]    
     static member Then(Validator validator, next : Func<_, StepResult>) =
         Validator (validator >> Validators.custom (fun x -> (next.Invoke x).Value))
