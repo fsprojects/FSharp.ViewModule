@@ -158,40 +158,33 @@ open System.Runtime.CompilerServices
 open ViewModule.Validation
 open ViewModule.Validation.FSharp
 
-type StepResult = internal StepResult of string option with 
-    static member Pass() = StepResult None
-    static member Fail(error : string) = StepResult (Some error)
+type Validator<'TValidate> = 
+    internal Validator of (ValidationResult<'TValidate> -> ValidationResult<'TValidate>)
     
-    member internal result.Value = match result with StepResult r -> r
-
-type Validator<'a> = internal Validator of (ValidationResult<'a> -> ValidationResult<'a>)
-
-[<Extension>]
-type ValidatorExensions() = 
-    
-    [<Extension>]    
-    static member Then(Validator validator, Validator other) =
+    with
+      member v.Then(Validator other) =
+        let validator = match v with Validator v -> v
         Validator (validator >> other)
                
-    [<Extension>]    
-    static member Then(Validator validator, next : Func<_, StepResult>) =
-        Validator (validator >> Validators.custom (fun x -> (next.Invoke x).Value))
+      member v.Then(next : Func<'TValidate, bool>, message : string) =
+        let validator = match v with Validator v -> v
+        Validator (validator >> Validators.custom (fun x -> if next.Invoke x then None else Some message))
 
-    [<Extension>]
-    static member FixErrors(Validator validator) =
+      member v.FixError() =
+        let validator = match v with Validator v -> v
         Validator (validator >> Validators.fixErrors)
 
-    [<Extension>]
-    static member FixErrors(Validator validator, message) =
+      member v.FixErrors(message : string) =
+        let validator = match v with Validator v -> v
         Validator (validator >> Validators.fixErrorsWithMessage message)
 
 type Validators internal () =
-    static member CreateCustom (validate : Func<_, StepResult>) = 
-        Validator (Validators.custom (validate.Invoke >> (fun r -> r.Value)))
+    static member Custom (validate : Func<'TValidate, bool>, message : string) = 
+        Validator (Validators.custom (fun v -> if validate.Invoke v then None else Some message))
 
-    static member NotNullOrWhitespace() = Validator (Validators.notNullOrWhitespace)
+    static member NotNullOrWhitespace = Validator (Validators.notNullOrWhitespace)
 
-    static member NoSpaces() = Validator (Validators.noSpaces)
+    static member NoSpaces = Validator (Validators.noSpaces)
     
     static member HasLength(length) = Validator (Validators.hasLength length)
 
@@ -201,26 +194,26 @@ type Validators internal () =
 
     static member MatchesPattern(pattern) = Validator (Validators.matchesPattern pattern)
 
-    static member IsAlphanumeric() = Validator (Validators.isAlphanumeric)
+    static member IsAlphanumeric = Validator (Validators.isAlphanumeric)
     
-    static member ContainsAtLeastOneDigit() = Validator (Validators.containsAtLeastOneDigit)
+    static member ContainsAtLeastOneDigit = Validator (Validators.containsAtLeastOneDigit)
 
     static member ContainsAtLeastOneUpperCaseCharacter = Validator (Validators.containsAtLeastOneUpperCaseCharacter)
 
     static member ContainsAtLeastOneLowerCaseCharacter = Validator (Validators.containsAtLeastOneLowerCaseCharacter)
 
-    static member NotEqual(value) = Validator (Validators.notEqual value)
+    static member NotEqual<'TValidate when 'TValidate : equality>(value : 'TValidate) = Validator (Validators.notEqual value)
 
-    static member GreaterThan(value) = Validator (Validators.greaterThan value)
+    static member GreaterThan<'TValidate when 'TValidate : comparison>(value : 'TValidate) = Validator (Validators.greaterThan value)
 
-    static member GreaterOrEqualTo(value) = Validator (Validators.greaterOrEqualTo value)
+    static member GreaterOrEqualTo<'TValidate when 'TValidate : comparison>(value : 'TValidate) = Validator (Validators.greaterOrEqualTo value)
 
-    static member LessThan(value) = Validator (Validators.lessThan value)
+    static member LessThan<'TValidate when 'TValidate : comparison>(value : 'TValidate) = Validator (Validators.lessThan value)
 
-    static member LessOrEqualTo(value) = Validator (Validators.lessOrEqualTo value)
+    static member LessOrEqualTo<'TValidate when 'TValidate : comparison>(value : 'TValidate) = Validator (Validators.lessOrEqualTo value)
 
-    static member IsBetween(lowerBound, upperBound) = Validator (Validators.isBetween lowerBound upperBound)
+    static member IsBetween<'TValidate when 'TValidate : comparison>(lowerBound : 'TValidate, upperBound : 'TValidate) = Validator (Validators.isBetween lowerBound upperBound)
 
-    static member ContainedWithin(collection) = Validator (Validators.containedWithin collection)
+    static member ContainedWithin(collection : 'TValidate seq) = Validator (Validators.containedWithin collection)
 
-    static member NotContainedWithin(collection) = Validator (Validators.notContainedWithin collection)
+    static member NotContainedWithin(collection : 'TValidate seq) = Validator (Validators.notContainedWithin collection)

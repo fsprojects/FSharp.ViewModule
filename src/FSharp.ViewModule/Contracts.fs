@@ -16,6 +16,7 @@ limitations under the License.
 
 namespace ViewModule
 
+open System
 open System.ComponentModel
 open System.Windows.Input
 
@@ -42,10 +43,18 @@ type IRaisePropertyChanged =
 
     abstract RaisePropertyChanged : propertyName : string -> unit
 
+[<DefaultAugmentation(false)>]
 /// Results of a validation for the member of a type or an entity.  errorKey is a string identifier unique per "error case"
 type ValidationState =
     | PropertyValidation of propertyName : string * error : string list
     | EntityValidation of error : string list
+
+    with
+      static member NewPropertyErrors(propertyName : string, [<ParamArray>] errors : string array) =
+        PropertyValidation(propertyName, errors |> List.ofArray)
+      
+      static member NewEntityErrors([<ParamArray>] errors : string array) = 
+        EntityValidation(errors |> List.ofArray)
 
 /// Used to track validation errors
 type IValidationTracker =

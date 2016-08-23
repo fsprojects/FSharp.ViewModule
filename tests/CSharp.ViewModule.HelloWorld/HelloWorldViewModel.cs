@@ -1,11 +1,12 @@
-﻿using System.Threading.Tasks;
+﻿using System.Collections.Generic;
 using System.Windows;
 using System.Windows.Input;
 using System.Threading;
+using System.Threading.Tasks;
 
 using ViewModule;
 using ViewModule.CSharp;
-using ViewModule.Validation.CSharp;
+using static ViewModule.Validation.CSharp.Validators;
 
 namespace CSharp.ViewModule.HelloWorld
 {
@@ -20,12 +21,13 @@ namespace CSharp.ViewModule.HelloWorld
         public HelloWorldViewModel()
         {
             _firstName = Factory.Backing(nameof(FirstName), "Anton", 
-                Validators.NotNullOrWhitespace()
-                .Then(Validators.NotEqual("Foo")));
+                NotNullOrWhitespace
+                .Then(NotEqual("Foo")));
 
             _lastName = Factory.Backing(nameof(LastName), "Tcholakov",
-                Validators.NotNullOrWhitespace()
-                .Then(Validators.NotEqual("Bar")));
+                NotNullOrWhitespace
+                .Then(NotEqual("Bar"))
+                .Then(x => x.Length < 10, "Length cannot exceed 10 characters"));
 
             _sayHello = Factory.CommandAsyncChecked(async ct =>
             {
@@ -49,6 +51,15 @@ namespace CSharp.ViewModule.HelloWorld
                 nameof(FirstName), nameof(LastName));
             DependencyTracker.AddPropertyDependencies(nameof(Greeting),
                 nameof(Name), nameof(NameLength));
+        }
+
+        public override IEnumerable<ValidationState> Validate(string propertyName)
+        {
+            if (propertyName == nameof(FirstName) || propertyName == nameof(LastName))
+            {
+                if (FirstName == "Reed" && LastName == "Copsey")
+                    yield return ValidationState.NewEntityErrors("This is a poor choice of name.");
+            }
         }
 
         public bool ReadyToGreet => !OperationExecuting && IsValid;
