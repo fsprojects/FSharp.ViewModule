@@ -94,8 +94,6 @@ type IViewModelPropertyFactory =
 
 
     // The C# API is implemented with members having the following signatures via extension methods in the ViewModule.CSharp namespace:
-    // (note that property names can either be supplied using Linq expression trees of type Expression<Func<'T>> or via strings, typically
-    //  obtained via nameof(Property)).
     //
     // Backing<'TProp> : property : string * defaultValue:'TProp -> INotifyingValue<'TProp>
     // Backing<'TProp> : property : string * defaultValue:'TProp * validate : Validator<'TProp> -> INotifyingValue<'TProp>
@@ -137,18 +135,7 @@ type IViewModelPropertyFactory =
     // CommandAsyncChecked : createTask : Func<CancellationToken, Task> * canExecute: Func<bool> * token : CancellationToken * onCancel : Action<OperationCanceledException> * [<ParamArray>] dependentProperties : Expression<Func<obj>> array -> IAsyncNotifyCommand
     // CommandAsyncParamChecked<'TParam> : createTask : Func<'TParam, Task> * canExecute : Func<'TParam, bool> * [<ParamArray>] dependentProperties : Expression<Func<obj>> array -> IAsyncNotifyCommand    
     // CommandAsyncParamChecked<'TParam> : createTask : Func<'TParam, CancellationToken, Task> * canExecute : Func<'TParam, bool> * token : CancellationToken * [<ParamArray>] dependentProperties : Expression<Func<obj>> array -> IAsyncNotifyCommand    
-    // CommandAsyncParamChecked<'TParam> : createTask : Func<'TParam, CancellationToken, Task> * canExecute : Func<'TParam, bool> * token : CancellationToken * onCancel : Action<OperationCanceledException> * [<ParamArray>] dependentProperties : Expression<Func<obj>> array -> IAsyncNotifyCommand    
-
-type IEventViewModelPropertyFactory<'a> =
-    inherit IViewModelPropertyFactory
-
-    abstract EventValueCommand<'a> : value:'a -> ICommand
-    abstract EventValueCommand<'a> : unit -> ICommand
-    abstract EventValueCommand<'a,'b> : valueFactory:('b -> 'a) -> ICommand
-
-    abstract EventValueCommandChecked<'a> : value:'a * canExecute:(unit -> bool) * ?dependentProperties: Expr list -> INotifyCommand
-    abstract EventValueCommandChecked<'a> : canExecute:('a -> bool) * ?dependentProperties: Expr list -> INotifyCommand
-    abstract EventValueCommandChecked<'a,'b> : valueFactory:('b -> 'a) * canExecute:('b -> bool) * ?dependentProperties: Expr list -> INotifyCommand
+    // CommandAsyncParamChecked<'TParam> : createTask : Func<'TParam, CancellationToken, Task> * canExecute : Func<'TParam, bool> * token : CancellationToken * onCancel : Action<OperationCanceledException> * [<ParamArray>] dependentProperties : Expression<Func<obj>> array -> IAsyncNotifyCommand 
 
 type internal NotifyingValueBackingField<'a> (propertyName, raisePropertyChanged : string -> unit, storage : NotifyingValue<'a>, validationResultPublisher : IValidationTracker, validate : 'a -> string list) =    
     let value = storage
@@ -249,11 +236,6 @@ type ViewModelUntyped() as self =
     member this.RaisePropertyChanged(propertyName : string) =
         propertyChanged.Trigger(this, new PropertyChangedEventArgs(propertyName))
     
-    // IMPLEMENT as F# extension method 
-    // member this.RaisePropertyChanged(expr : Expr) =
-    //     let propName = getPropertyNameFromExpression(expr)
-    //     this.RaisePropertyChanged(propName)
-
     /// Value used to notify view that an asynchronous operation is executing
     member this.OperationExecuting with get() = operationExecuting.Value and set(value) = operationExecuting.Value <- value
 
@@ -370,7 +352,7 @@ open Microsoft.FSharp.Quotations
 open Microsoft.FSharp.Quotations.Patterns
 
 [<AutoOpen>]
-module Extensions =
+module EventExtensions =
 
     type IDependencyTracker with
         member x.AddPropertyDependency(prop : string, dependency : string) =
