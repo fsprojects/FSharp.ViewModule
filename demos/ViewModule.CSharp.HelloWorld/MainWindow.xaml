@@ -27,7 +27,7 @@
         <Label Grid.Row="1" Grid.Column="0" Content="Last name:" />
         <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding LastName}" IsEnabled="{Binding ReadyToGreet}" />
 
-        <Button Grid.Row="2" Grid.Column="0" Content="Say hello" Command="{Binding SayHello}" IsEnabled="{Binding IsValid}" />
-        <Button Grid.Row="2" Grid.Column="1" Content="Stop" Command="{Binding Cancel}" IsEnabled="{Binding OperationExecuting}" />
+        <Button Grid.Row="2" Grid.Column="0" Content="Say hello" Command="{Binding SayHello}" />
+        <Button Grid.Row="2" Grid.Column="1" Content="Stop" Command="{Binding Cancel}" />
     </Grid>
 </Window>

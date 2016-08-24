@@ -1,5 +1,4 @@
 ﻿using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
@@ -31,9 +30,9 @@ namespace CSharp.ViewModule.HelloWorld
                 .Then(x => x.Length < 10, "Length cannot exceed 10 characters"));
 
             _sayHello = 
-                Factory.CommandAsyncChecked(Greet, () => IsValid,
+                Factory.CommandAsyncChecked(Greet, () => IsValid && !OperationExecuting,
                     _cts.Token, exn => MessageBox.Show("Sorry I was too slow :-(."),
-                    nameof(IsValid));
+                    nameof(IsValid), nameof(OperationExecuting));
 
             _cancelCommand = Factory.CommandSyncChecked(() => _cts?.Cancel(),
                 () => OperationExecuting, nameof(OperationExecuting));
@@ -61,11 +60,8 @@ namespace CSharp.ViewModule.HelloWorld
             if (propertyName == nameof(FullName))
             {
                 var errors = NotEqual("Reed Copsey").Validate(FullName, "This is a poor choice of names.");
-                if (errors.Any())
-                {
-                    yield return ValidationState.NewPropertyErrors(nameof(FullName), errors);
-                    yield return ValidationState.NewEntityErrors(errors);
-                }
+                yield return ValidationState.NewPropertyErrors(nameof(FullName), errors);
+                yield return ValidationState.NewEntityErrors(errors);
             }
         }
 
