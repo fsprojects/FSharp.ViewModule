@@ -1,8 +1,9 @@
 ﻿using System.Collections.Generic;
-using System.Windows;
-using System.Windows.Input;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Windows;
+using System.Windows.Input;
 
 using ViewModule;
 using ViewModule.CSharp;
@@ -59,15 +60,16 @@ namespace CSharp.ViewModule.HelloWorld
         {
             if (propertyName == nameof(FullName))
             {
-                if (FirstName == "Reed" && LastName == "Copsey")
+                var errors = NotEqual("Reed Copsey").Validate(FullName, "This is a poor choice of names.");
+                if (errors.Any())
                 {
-                    yield return ValidationState.NewPropertyErrors(nameof(FullName), "This is a poor choice of name.");
-                    yield return ValidationState.NewEntityErrors("This is a poor choice of name.");
+                    yield return ValidationState.NewPropertyErrors(nameof(FullName), errors);
+                    yield return ValidationState.NewEntityErrors(errors);
                 }
             }
         }
 
-        public bool ReadyToGreet => !OperationExecuting && IsValid;
+        public bool ReadyToGreet => !OperationExecuting && IsValid; 
         public string FirstName { get { return _firstName.Value; } set { _firstName.Value = value; } }
         public string LastName { get { return _lastName.Value; } set { _lastName.Value = value; } }
         public string FullName => $"{FirstName} {LastName}";

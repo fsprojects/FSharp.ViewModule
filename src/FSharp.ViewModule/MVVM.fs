@@ -424,7 +424,7 @@ open System.Threading.Tasks
 type Extensions =
     
     [<Extension>]
-    static member AddProperty(dependencyTracker : IDependencyTracker, property : string, dependency : string) =
+    static member AddPropertyDependency(dependencyTracker : IDependencyTracker, property : string, dependency : string) =
         (dependencyTracker :?> DependencyTracker).AddPropertyDependencyI(property, dependency)
 
     [<Extension>]
@@ -546,7 +546,7 @@ type PropertyExpr = Expression<Func<obj>>
 type Extensions =
     
     [<Extension>]
-    static member AddProperty(dependencyTracker : IDependencyTracker, property : PropertyExpr, dependency : PropertyExpr) =
+    static member AddPropertyDependency(dependencyTracker : IDependencyTracker, property : PropertyExpr, dependency : PropertyExpr) =
         let property'   = getPropertyNameFromLinqExpression property
         let dependency' = getPropertyNameFromLinqExpression dependency
         (dependencyTracker :?> DependencyTracker).AddPropertyDependencyI(property', dependency')

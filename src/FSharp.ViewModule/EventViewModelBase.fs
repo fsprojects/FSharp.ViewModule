@@ -188,7 +188,7 @@ open System
 open System.Linq.Expressions
 open System.Runtime.CompilerServices
 
-    [<Extension>]
+[<Extension>]
 type EventExtensions =
     
     [<Extension>]

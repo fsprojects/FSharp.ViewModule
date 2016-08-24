@@ -178,6 +178,14 @@ type Validator<'TValidate> =
         let validator = match v with Validator v -> v
         Validator (validator >> Validators.fixErrorsWithMessage message)
 
+      member v.Validate(value : 'TValidate) =
+        let validator = match v with Validator v -> v
+        Validators.validate "" value |> validator |> Validators.result |> Array.ofList 
+
+      member v.Validate(value : 'TValidate, error : string) =
+        let validator = match v with Validator v -> v
+        Validators.validate "" value |> validator |> Validators.resultWithError error |> Array.ofList 
+
 type Validators internal () =
     static member Custom (validate : Func<'TValidate, bool>, message : string) = 
         Validator (Validators.custom (fun v -> if validate.Invoke v then None else Some message))

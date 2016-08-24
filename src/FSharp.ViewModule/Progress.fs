@@ -63,6 +63,13 @@ type ProgressManager() as self =
 
     member internal this.ProgressReporter = progressHandler :> IProgress<OperationState>
 
+namespace ViewModule.Progress.FSharp
+
+open System
+
+open ViewModule
+open ViewModule.Progress
+
 [<AutoOpen>]
 module ProgressReporting =
     let updateProgress (manager : ProgressManager) (state : OperationState) =
@@ -72,3 +79,27 @@ module ProgressReporting =
         match reporter with
         | Some(report) -> report(state)
         | None -> ()
+
+namespace ViewModule.Progress.CSharp
+
+open System
+open System.Runtime.CompilerServices
+
+open ViewModule
+open ViewModule.Progress
+open ViewModule.Progress.FSharp
+
+[<Extension>]
+type ProgressExtensions =
+    
+    [<Extension>]
+    static member SetIdle(manager : ProgressManager) =
+        updateProgress manager Idle
+
+    [<Extension>]
+    static member Report(manager : ProgressManager, status : string) =
+        updateProgress manager (Reporting status)
+
+    [<Extension>]
+    static member Executing(manager : ProgressManager, status : string, current : int, total : int) =
+        updateProgress manager (Executing(status, current, total))
