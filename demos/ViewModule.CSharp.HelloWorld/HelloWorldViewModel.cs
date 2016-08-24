@@ -59,7 +59,7 @@ namespace CSharp.ViewModule.HelloWorld
         {
             if (propertyName == nameof(FullName))
             {
-                var errors = NotEqual("Reed Copsey").Validate(FullName, "This is a poor choice of names.");
+                var errors = FullName.Validate(NotEqual("Reed Copsey"), "This is a poor choice of names.");
                 yield return ValidationState.NewPropertyErrors(nameof(FullName), errors);
                 yield return ValidationState.NewEntityErrors(errors);
             }
