@@ -186,17 +186,7 @@ type Validator<'TValidate> =
         let validator = match v with Validator v -> v
         Validators.validate "" value |> validator |> Validators.resultWithError error |> Array.ofList 
 
-[<Extension>]
 type Validators internal () =
-    
-    [<Extension>]
-    static member Validate (value : 'TValidate, validator : Validator<'TValidate>) =
-        validator.Validate(value)
-
-    [<Extension>]
-    static member Validate (value : 'TValidate, validator : Validator<'TValidate>, error : string) =
-        validator.Validate(value, error)
-
     static member Custom (validate : Func<'TValidate, bool>, message : string) = 
         Validator (Validators.custom (fun v -> if validate.Invoke v then None else Some message))
 
