@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 *)
 
-namespace FSharp.ViewModule
+namespace ViewModule
 
 open System
 open System.ComponentModel
@@ -24,8 +24,6 @@ open System.Windows.Input
 
 open Microsoft.FSharp.Quotations
 open Microsoft.FSharp.Quotations.Patterns
-
-open FSharp.ViewModule
 
 // Default command implementation for our MVVM base classes
 type FunCommand (execute : obj -> unit, canExecute, token) =
@@ -85,13 +83,12 @@ type FunCommand (execute : obj -> unit, canExecute, token) =
     interface IAsyncNotifyCommand with
         member this.CancellationToken with get() = this.cancellationToken and set(v) = this.cancellationToken <- v
 
-
 /// Module containing Command factory methods to create ICommand implementations
 module internal Commands =
     let createSyncInternal execute canExecute =
         let ceWrapped : obj -> bool = fun _ -> canExecute()
         let func : obj -> unit = (fun _ -> execute())
-        FunCommand(func, ceWrapped) :> INotifyCommand    
+        FunCommand(func, ceWrapped) :> INotifyCommand
 
     let createAsyncInternal (asyncWorkflow : (SynchronizationContext -> Async<unit>)) getExecuting setExecuting canExecute (token : CancellationToken) onCancel =
         let execute = (fun (ui : SynchronizationContext) (p : obj) -> asyncWorkflow(ui))

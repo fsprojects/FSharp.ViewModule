@@ -1,9 +1,11 @@
 source https://nuget.org/api/v2
 
+nuget FSharp.Core redirects:force
 nuget FSharp.Formatting
 nuget NUnit ~> 2
 nuget NUnit.Runners ~> 2
 nuget FAKE
 nuget SourceLink.Fake
+nuget Octokit = 0.17.0
 
-github fsharp/FAKE modules/Octokit/Octokit.fsx
+github fsharp/FAKE:917a86046700e4eaaa2aa09de7895e048eaaa1b1 modules/Octokit/Octokit.fsx

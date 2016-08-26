@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 *)
 
-namespace FSharp.ViewModule.Validation
+namespace ViewModule.Validation.FSharp
 
 open System
 open System.Text.RegularExpressions
@@ -148,3 +148,80 @@ module Validators =
 
     let evaluate value (workflow : 'a -> string list) =
         workflow(value)
+
+
+namespace ViewModule.Validation.CSharp
+
+open System
+open System.Runtime.CompilerServices
+
+open ViewModule.Validation
+open ViewModule.Validation.FSharp
+
+type Validator<'TValidate> = 
+    internal Validator of (ValidationResult<'TValidate> -> ValidationResult<'TValidate>)
+    
+    with
+      member v.Then(Validator other) =
+        let validator = match v with Validator v -> v
+        Validator (validator >> other)
+               
+      member v.Then(next : Func<'TValidate, bool>, message : string) =
+        let validator = match v with Validator v -> v
+        Validator (validator >> Validators.custom (fun x -> if next.Invoke x then None else Some message))
+
+      member v.FixError() =
+        let validator = match v with Validator v -> v
+        Validator (validator >> Validators.fixErrors)
+
+      member v.FixErrors(message : string) =
+        let validator = match v with Validator v -> v
+        Validator (validator >> Validators.fixErrorsWithMessage message)
+
+      member v.Validate(value : 'TValidate) =
+        let validator = match v with Validator v -> v
+        Validators.validate "" value |> validator |> Validators.result |> Array.ofList 
+
+      member v.Validate(value : 'TValidate, error : string) =
+        let validator = match v with Validator v -> v
+        Validators.validate "" value |> validator |> Validators.resultWithError error |> Array.ofList 
+
+type Validators internal () =
+    static member Custom (validate : Func<'TValidate, bool>, message : string) = 
+        Validator (Validators.custom (fun v -> if validate.Invoke v then None else Some message))
+
+    static member NotNullOrWhitespace = Validator (Validators.notNullOrWhitespace)
+
+    static member NoSpaces = Validator (Validators.noSpaces)
+    
+    static member HasLength(length) = Validator (Validators.hasLength length)
+
+    static member HasLengthAtLeast(length) = Validator (Validators.hasLengthAtLeast length)
+
+    static member HasLengthNotLongerThan(length) = Validator (Validators.hasLengthNoLongerThan length)
+
+    static member MatchesPattern(pattern) = Validator (Validators.matchesPattern pattern)
+
+    static member IsAlphanumeric = Validator (Validators.isAlphanumeric)
+    
+    static member ContainsAtLeastOneDigit = Validator (Validators.containsAtLeastOneDigit)
+
+    static member ContainsAtLeastOneUpperCaseCharacter = Validator (Validators.containsAtLeastOneUpperCaseCharacter)
+
+    static member ContainsAtLeastOneLowerCaseCharacter = Validator (Validators.containsAtLeastOneLowerCaseCharacter)
+
+    static member NotEqual<'TValidate when 'TValidate : equality>(value : 'TValidate) = Validator (Validators.notEqual value)
+
+    static member GreaterThan<'TValidate when 'TValidate : comparison>(value : 'TValidate) = Validator (Validators.greaterThan value)
+
+    static member GreaterOrEqualTo<'TValidate when 'TValidate : comparison>(value : 'TValidate) = Validator (Validators.greaterOrEqualTo value)
+
+    static member LessThan<'TValidate when 'TValidate : comparison>(value : 'TValidate) = Validator (Validators.lessThan value)
+
+    static member LessOrEqualTo<'TValidate when 'TValidate : comparison>(value : 'TValidate) = Validator (Validators.lessOrEqualTo value)
+
+    static member IsBetween<'TValidate when 'TValidate : comparison>(lowerBound : 'TValidate, upperBound : 'TValidate) = Validator (Validators.isBetween lowerBound upperBound)
+
+    static member ContainedWithin(collection : 'TValidate seq) = Validator (Validators.containedWithin collection)
+
+    static member NotContainedWithin(collection : 'TValidate seq) = Validator (Validators.notContainedWithin collection)

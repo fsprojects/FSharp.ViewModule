@@ -1,4 +1,4 @@
-﻿namespace FSharp.ViewModule
+﻿namespace ViewModule
 
 open System
 open System.IO
@@ -6,7 +6,10 @@ open System.IO
 open Microsoft.FSharp.Quotations
 open Microsoft.FSharp.Quotations.Patterns
 
+open System.Linq.Expressions
 open System.Reflection
+open System.Threading
+open System.Threading.Tasks
 
 [<assembly:System.Runtime.CompilerServices.InternalsVisibleTo("FSharp.ViewModule.Tests")>]
 do ()
@@ -28,6 +31,30 @@ module internal Utilities =
         | PropertyGet(a, pi, list) -> pi.Name
         | _ -> ""
 
+    let rec getPropertyNameFromLinqExpression (linqExpr : Expression) =
+        match linqExpr with
+        | :? LambdaExpression as l -> getPropertyNameFromLinqExpression l.Body
+        | :? UnaryExpression as u -> getPropertyNameFromLinqExpression u.Operand
+        | :? MemberExpression as m ->
+            match m.Member with
+            | :? PropertyInfo as p -> p.Name
+            | _ -> ""
+        | _ -> ""
+
+module internal Async =
+    let fromTaskFunc (createTask : Func<Task>) =
+        createTask.Invoke () |> Async.AwaitIAsyncResult |> Async.Ignore
+
+    let fromTaskFuncCancellable (createTask : Func<CancellationToken, Task>) = async {
+        let! ct = Async.CancellationToken
+        do! createTask.Invoke ct |> Async.AwaitIAsyncResult |> Async.Ignore }
+    
+    let fromTaskParamFunc (createTask : Func<'a, Task>) param =
+        createTask.Invoke param |> Async.AwaitIAsyncResult |> Async.Ignore
+
+    let FromTaskParamFuncCancellable (createTask : Func<'a, CancellationToken, Task>) param = async {
+        let! ct = Async.CancellationToken
+        do! createTask.Invoke(param, ct) |> Async.AwaitIAsyncResult |> Async.Ignore }
 
 module public Helpers =
     let getPropertyNameFromExpression(expr : Expr) =

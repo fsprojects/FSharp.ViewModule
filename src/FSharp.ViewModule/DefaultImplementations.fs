@@ -14,19 +14,20 @@ See the License for the specific language governing permissions and
 limitations under the License.
 *)
 
-namespace FSharp.ViewModule
+namespace ViewModule
 
 open System
 open System.ComponentModel
 open System.Collections.Generic
 open System.Threading
+open System.Linq.Expressions
 
 open Microsoft.FSharp.Quotations
 open Microsoft.FSharp.Quotations.Patterns
 
 type internal ValidationKey =
-    | PropertyGeneratedValidation of ValidationResult
-    | EntityGeneratedValidation of ValidationResult
+    | PropertyGeneratedValidation of ValidationState
+    | EntityGeneratedValidation of ValidationState
 
 type internal ValidationSource =
     | FromProperty
@@ -35,7 +36,7 @@ type internal ValidationEntry =
     | PropertyEntry of propertyName : string * source : ValidationSource
     | EntityEntry of source : ValidationSource
 
-type ValidationTracker(raiseErrorsChanged : string -> unit, propertyChanged : IObservable<PropertyChangedEventArgs>, entityValidator : string -> ValidationResult seq, propertiesToIgnore : Expr list) =
+type ValidationTracker(raiseErrorsChanged : string -> unit, propertyChanged : IObservable<PropertyChangedEventArgs>, entityValidator : string -> ValidationState seq, propertiesToIgnore : Expr list) =
     let errorDictionary = Dictionary<ValidationEntry, string list>()
     let validationDictionary = Dictionary<string, unit -> string list>()
     let propertyNamesToIgnore = propertiesToIgnore |> List.map getPropertyNameFromExpression
@@ -142,10 +143,10 @@ type ValidationTracker(raiseErrorsChanged : string -> unit, propertyChanged : IO
             }
 
     interface IValidationTracker with
-        member this.SetPropertyValidationResult (vr : ValidationResult) = 
+        member this.SetPropertyValidationState (vr : ValidationState) = 
             setResult(PropertyGeneratedValidation(vr))
         
-        member this.SetEntityValidationResult (vr : ValidationResult) = 
+        member this.SetEntityValidationResult (vr : ValidationState) = 
             setResult(EntityGeneratedValidation(vr))
         
         member this.ClearErrors() =
@@ -214,18 +215,8 @@ type DependencyTracker(raisePropertyChanged : string -> unit, propertyChanged : 
     /// Optional context used to raise all property changed notifications.  If null, they'll get raised directly.
     member val SynchronizationContext : SynchronizationContext = null with get, set
 
-    interface IDependencyTracker with
-        member this.AddPropertyDependencies (property : string, dependentProperties: string list) = addDependentProperties property dependentProperties
+    interface IDependencyTracker
 
-        member this.AddPropertyDependencies(property : Expr, dependentProperties: Expr list) =             
-            let dependents = dependentProperties |> List.map getPropertyNameFromExpression
-            addDependentProperties (getPropertyNameFromExpression property) dependents
-            
-        member this.AddPropertyDependency (property : Expr, dependentProperty: Expr) = 
-            addDependentProperty (getPropertyNameFromExpression property) (getPropertyNameFromExpression dependentProperty)
-
-        member this.AddPropertyDependency (property : string, dependentProperty: string) = addDependentProperty property dependentProperty
-
-        member this.AddCommandDependency (command : INotifyCommand, expr) = addDependentCommand (getPropertyNameFromExpression expr) command
-
-        member this.AddCommandDependency (command : INotifyCommand, name) = addDependentCommand name command
+    member internal this.AddPropertyDependenciesI (property : string, dependentProperties: string list) = addDependentProperties property dependentProperties
+    member internal this.AddPropertyDependencyI (property : string, dependentProperty: string) = addDependentProperty property dependentProperty
+    member internal this.AddCommandDependencyI (command : INotifyCommand, name) = addDependentCommand name command

@@ -1,6 +1,6 @@
-module FSharp.ViewModule.Tests.Utilities
+module ViewModule.Tests.Utilities
 
-open FSharp.ViewModule
+open ViewModule
 open NUnit.Framework
 
 [<Test>]
