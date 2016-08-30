@@ -19,5 +19,3 @@ namespace ViewModule
 [<AbstractClass>]
 type ViewModelBase() =
     inherit ViewModule.Internal.ViewModelUntyped()
-
-    member this.Factory with get() = this :> IViewModelPropertyFactory
