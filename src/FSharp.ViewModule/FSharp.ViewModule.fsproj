@@ -50,6 +50,7 @@
     <Compile Include="DefaultImplementations.fs" />
     <Compile Include="FunCommand.fs" />
     <Compile Include="Validation.fs" />
+    <Compile Include="Factory.fs" />
     <Compile Include="MVVM.fs" />
     <Compile Include="ViewModelBase.fs" />
     <Compile Include="EventViewModelBase.fs" />
