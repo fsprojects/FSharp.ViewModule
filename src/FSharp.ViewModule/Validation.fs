@@ -170,7 +170,7 @@ type Validator<'TValidate> =
         let validator = match v with Validator v -> v
         Validator (validator >> Validators.custom (fun x -> if next.Invoke x then None else Some message))
 
-      member v.FixError() =
+      member v.FixErrors() =
         let validator = match v with Validator v -> v
         Validator (validator >> Validators.fixErrors)
 
