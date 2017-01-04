@@ -42,19 +42,17 @@ namespace CSharp.ViewModule.HelloWorld
 
             DependencyTracker.AddPropertyDependencies(nameof(ReadyToGreet), nameof(OperationExecuting));
             DependencyTracker.AddPropertyDependencies(nameof(FullName), nameof(FirstName), nameof(LastName));
-            DependencyTracker.AddPropertyDependencies(nameof(Greeting), nameof(FullName), nameof(NameLength));
+            DependencyTracker.AddPropertyDependencies(nameof(Greeting), nameof(FullName));
         }
 
         public bool ReadyToGreet => !this.OperationExecuting && this.IsValid;
         public string FirstName { get { return firstName.Value; } set { firstName.Value = value; } }
         public string LastName { get { return lastName.Value; } set { lastName.Value = value; } }
         public string FullName => $"{FirstName} {LastName}";
-        public string Greeting => $"Hello, {FullName}. Your name is {NameLength} characters long.";
+        public string Greeting => $"Hello, {FullName}. Your name is {FullName.Length} characters long.";
 
         public ICommand SayHello => sayHello;
-        public ICommand Cancel => cancelCommand;
-
-        private int NameLength => FullName.Length;
+        public ICommand Cancel => cancelCommand;        
 
         private async Task Greet(CancellationToken token)
         {
