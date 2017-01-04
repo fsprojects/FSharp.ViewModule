@@ -11,6 +11,7 @@ open System.Reflection
 open System.Threading
 open System.Threading.Tasks
 
+[<assembly:System.Runtime.CompilerServices.Extension>]
 [<assembly:System.Runtime.CompilerServices.InternalsVisibleTo("FSharp.ViewModule.Tests")>]
 do ()
 

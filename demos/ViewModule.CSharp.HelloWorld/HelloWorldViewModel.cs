@@ -12,38 +12,49 @@ namespace CSharp.ViewModule.HelloWorld
 {
     class HelloWorldViewModel : ViewModelBase
     {
-        private readonly INotifyingValue<string> _firstName;
-        private readonly INotifyingValue<string> _lastName;
-        private readonly IAsyncNotifyCommand _sayHello;
-        private readonly INotifyCommand _cancelCommand;
-        private CancellationTokenSource _cts = new CancellationTokenSource();
+        private readonly INotifyingValue<string> firstName;
+        private readonly INotifyingValue<string> lastName;
+        public readonly IAsyncNotifyCommand sayHello;
+        private readonly INotifyCommand cancelCommand;
+        private CancellationTokenSource cts = new CancellationTokenSource();
 
         public HelloWorldViewModel()
         {
-            _firstName = Factory.Backing(nameof(FirstName), "Anton", 
-                NotNullOrWhitespace
-                .Then(NotEqual("Foo")));
+            firstName = Factory.Backing(nameof(FirstName), "Anton", NotNullOrWhitespace.Then(NotEqual("Foo")));
 
-            _lastName = Factory.Backing(nameof(LastName), "Tcholakov",
-                NotNullOrWhitespace
-                .Then(NotEqual("Bar"))
-                .Then(x => x.Length < 10, "Length cannot exceed 10 characters"));
+            lastName = Factory.Backing(
+                    nameof(LastName), 
+                    "Tcholakov", 
+                    NotNullOrWhitespace.Then(NotEqual("Bar")).Then(x => x.Length < 10, "Length cannot exceed 10 characters"));
 
-            _sayHello = 
-                Factory.CommandAsyncChecked(Greet, () => IsValid && !OperationExecuting,
-                    _cts.Token, exn => MessageBox.Show("Sorry I was too slow :-(."),
-                    nameof(IsValid), nameof(OperationExecuting));
+            sayHello = Factory.CommandAsyncChecked(
+                    Greet, 
+                    () => this.IsValid && !this.OperationExecuting,
+                    cts.Token, 
+                    exn => MessageBox.Show("Sorry I was too slow :-(."),
+                    nameof(IsValid), 
+                    nameof(OperationExecuting));
 
-            _cancelCommand = Factory.CommandSyncChecked(() => _cts?.Cancel(),
-                () => OperationExecuting, nameof(OperationExecuting));
+            cancelCommand = Factory.CommandSyncChecked(
+                    () => this.cts?.Cancel(),
+                    () => this.OperationExecuting, 
+                    nameof(OperationExecuting));
 
-            DependencyTracker.AddPropertyDependencies(nameof(ReadyToGreet), 
-                nameof(OperationExecuting));
-            DependencyTracker.AddPropertyDependencies(nameof(FullName),
-                nameof(FirstName), nameof(LastName));
-            DependencyTracker.AddPropertyDependencies(nameof(Greeting),
-                nameof(FullName), nameof(NameLength));
+            DependencyTracker.AddPropertyDependencies(nameof(ReadyToGreet), nameof(OperationExecuting));
+            DependencyTracker.AddPropertyDependencies(nameof(FullName), nameof(FirstName), nameof(LastName));
+            DependencyTracker.AddPropertyDependencies(nameof(Greeting), nameof(FullName), nameof(NameLength));
         }
+
+        public bool ReadyToGreet => !this.OperationExecuting && this.IsValid;
+        public string FirstName { get { return firstName.Value; } set { firstName.Value = value; } }
+        public string LastName { get { return lastName.Value; } set { lastName.Value = value; } }
+        public string FullName => $"{FirstName} {LastName}";
+        public string Greeting => $"Hello, {FullName}. Your name is {NameLength} characters long.";
+
+        public ICommand SayHello => sayHello;
+        public ICommand Cancel => cancelCommand;
+
+        private int NameLength => FullName.Length;
 
         private async Task Greet(CancellationToken token)
         {
@@ -52,7 +63,12 @@ namespace CSharp.ViewModule.HelloWorld
                 await Task.Delay(2000, token);
                 MessageBox.Show(Greeting);
             }
-            finally { _cts.Dispose(); _cts = new CancellationTokenSource(); _sayHello.CancellationToken = _cts.Token; }
+            finally
+            {
+                this.cts.Dispose();
+                this.cts = new CancellationTokenSource();
+                this.sayHello.CancellationToken = this.cts.Token;
+            }
         }
 
         public override IEnumerable<ValidationState> Validate(string propertyName)
@@ -64,15 +80,5 @@ namespace CSharp.ViewModule.HelloWorld
                 yield return ValidationState.NewEntityErrors(errors);
             }
         }
-
-        public bool ReadyToGreet => !OperationExecuting && IsValid; 
-        public string FirstName { get { return _firstName.Value; } set { _firstName.Value = value; } }
-        public string LastName { get { return _lastName.Value; } set { _lastName.Value = value; } }
-        public string FullName => $"{FirstName} {LastName}";
-        public int NameLength => FullName.Length;
-        public string Greeting => $"Hello, {FullName}. Your name is {NameLength} characters long.";
-
-        public ICommand SayHello => _sayHello;
-        public ICommand Cancel => _cancelCommand;
     }
 }

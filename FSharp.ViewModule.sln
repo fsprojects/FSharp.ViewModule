@@ -35,8 +35,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{ED8079DD
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "FSharp.ViewModule.Tests", "tests\FSharp.ViewModule.Tests\FSharp.ViewModule.Tests.fsproj", "{3B9A0E1A-B5FD-4DF4-A32D-98E72E0EDF32}"
 EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "FSharp.ViewModule.Wpf", "src\FSharp.ViewModule.Wpf\FSharp.ViewModule.Wpf.fsproj", "{11486964-C33E-4F81-A30D-01D343939164}"
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "demos", "demos", "{F74A1491-62C8-4BFE-88AC-EF314860A5FB}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ViewModule.CSharp.HelloWorld", "demos\ViewModule.CSharp.HelloWorld\ViewModule.CSharp.HelloWorld.csproj", "{E918070E-A814-4E55-9369-6BADF1DBDDC9}"
@@ -55,10 +53,6 @@ Global
 		{3B9A0E1A-B5FD-4DF4-A32D-98E72E0EDF32}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{3B9A0E1A-B5FD-4DF4-A32D-98E72E0EDF32}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{3B9A0E1A-B5FD-4DF4-A32D-98E72E0EDF32}.Release|Any CPU.Build.0 = Release|Any CPU
-		{11486964-C33E-4F81-A30D-01D343939164}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{11486964-C33E-4F81-A30D-01D343939164}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{11486964-C33E-4F81-A30D-01D343939164}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{11486964-C33E-4F81-A30D-01D343939164}.Release|Any CPU.Build.0 = Release|Any CPU
 		{E918070E-A814-4E55-9369-6BADF1DBDDC9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{E918070E-A814-4E55-9369-6BADF1DBDDC9}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{E918070E-A814-4E55-9369-6BADF1DBDDC9}.Release|Any CPU.ActiveCfg = Release|Any CPU

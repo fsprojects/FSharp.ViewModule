@@ -1,17 +1,13 @@
-﻿namespace FSharp.ViewModule.AssemblyInfo
-
+﻿namespace System
 open System.Reflection
-open System.Runtime.CompilerServices
-
-module internal AssemblyVersionInformation =
-    let [<Literal>] Version = "0.9.9.3"
 
 [<assembly: AssemblyTitleAttribute("FSharp.ViewModule")>]
 [<assembly: AssemblyProductAttribute("FSharp.ViewModule")>]
 [<assembly: AssemblyDescriptionAttribute("Library providing MVVM and INotifyPropertyChanged support for F# projects")>]
-[<assembly: AssemblyVersionAttribute(AssemblyVersionInformation.Version)>]
-[<assembly: AssemblyFileVersionAttribute(AssemblyVersionInformation.Version)>]
-
-[<assembly: InternalsVisibleTo("FSharp.ViewModule.Wpf")>]
+[<assembly: AssemblyVersionAttribute("1.0.0.0")>]
+[<assembly: AssemblyFileVersionAttribute("1.0.0.0")>]
 do ()
 
+module internal AssemblyVersionInformation =
+    let [<Literal>] Version = "1.0.0.0"
+    let [<Literal>] InformationalVersion = "1.0.0.0"

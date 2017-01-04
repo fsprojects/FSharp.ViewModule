@@ -64,7 +64,6 @@
   <Import Project="..\..\.paket\paket.targets" />
   <ItemGroup>
     <Compile Include="UtilityTests.fs" />
-    <Compile Include="DynamicTests.fs" />
     <None Include="paket.references" />
     <Content Include="App.config" />
   </ItemGroup>
@@ -81,11 +80,6 @@
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Numerics" />
-    <ProjectReference Include="..\..\src\FSharp.ViewModule.Wpf\FSharp.ViewModule.Wpf.fsproj">
-      <Name>FSharp.ViewModule.Wpf</Name>
-      <Project>{11486964-c33e-4f81-a30d-01d343939164}</Project>
-      <Private>True</Private>
-    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <Reference Include="nunit.framework">
