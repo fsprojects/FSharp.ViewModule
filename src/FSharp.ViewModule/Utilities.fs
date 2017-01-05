@@ -24,8 +24,17 @@ module internal Utilities =
 
     let internal downcastAndCreateOption<'T> (o: obj) =
         match o with
-        | :? 'T as res -> Some res
-        | _ -> None
+        | :? 'T as res -> 
+            // Check direct cast - works for reference types
+            Some res
+        | _ ->             
+            try
+                // Handle nullable types, mismatched value types, or convertible reference types
+                match Convert.ChangeType(o, typeof<'T>) with
+                | :? 'T as res -> Some res
+                | _ -> None
+            with
+            | _ -> None
     
     let getPropertyNameFromExpression(expr : Expr) = 
         match expr with
