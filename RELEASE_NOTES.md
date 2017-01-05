@@ -7,4 +7,8 @@
 * Added C# interface implemented by @anton-pt
 * Changed namespaces for F# vs C# usage
 
+#### 1.0.1.0 - January 5 2017
+* Created new standalone command implementations
+* Added initial implementation of Command module/static class
+
 
