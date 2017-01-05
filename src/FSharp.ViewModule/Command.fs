@@ -61,6 +61,10 @@ namespace ViewModule.CSharp
             ViewModule.Commands.createSyncInternal execute.Invoke (fun () -> true)
         static member CreateSync (execute : Action, canExecute : Func<bool>) = 
             ViewModule.Commands.createSyncInternal execute.Invoke canExecute.Invoke
+        static member CreateSyncParam(execute : Action<'T>) = 
+            ViewModule.Commands.createSyncParamInternal execute.Invoke (fun _ -> true)
+        static member CreateSyncParam (execute : Action<'T>, canExecute : Func<'T, bool>) = 
+            ViewModule.Commands.createSyncParamInternal execute.Invoke canExecute.Invoke
         static member CreateAsync (createTask : Func<Task>) = 
             ViewModule.Internal.AsyncCommand((fun _ _ -> Async.fromTaskFunc createTask), (fun _ -> true)) :> IAsyncCommand
 
@@ -71,3 +75,7 @@ namespace ViewModule.FSharp
             ViewModule.Commands.createSyncInternal execute (fun () -> true)
         let syncChecked execute canExecute = 
             ViewModule.Commands.createSyncInternal execute canExecute 
+        let syncParam execute = 
+            ViewModule.Commands.createSyncParamInternal execute (fun _ -> true)
+        let syncParamChecked execute canExecute = 
+            ViewModule.Commands.createSyncParamInternal execute canExecute 
