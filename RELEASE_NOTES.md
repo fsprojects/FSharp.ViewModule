@@ -11,4 +11,9 @@
 * Created new standalone command implementations
 * Added initial implementation of Command module/static class
 
+#### 1.0.2.0 - January 5 2017
+* Created new standalone command implementations
+* Added to implementation of Command module/static class
+
+
 
