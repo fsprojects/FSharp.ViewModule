@@ -37,6 +37,14 @@ type IAsyncNotifyCommand =
 
     abstract member CancellationToken : System.Threading.CancellationToken with get, set
 
+/// <summary>Extension of IAsyncNotifyCommand with a public property to check whether it's currently executing.</summary>
+/// <remarks>OperationExecuting will raise PropertyChanged events as appropriate.</remarks>
+type IAsyncCommand =
+    inherit IAsyncNotifyCommand
+    inherit INotifyPropertyChanged
+
+    abstract member OperationExecuting : bool with get
+
 /// Interface used to explicitly raise PropertyChanged
 type IRaisePropertyChanged =
     inherit INotifyPropertyChanged

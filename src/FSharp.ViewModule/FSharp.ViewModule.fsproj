@@ -55,6 +55,7 @@
     <Compile Include="ViewModelBase.fs" />
     <Compile Include="EventViewModelBase.fs" />
     <Compile Include="Progress.fs" />
+    <Compile Include="Command.fs" />
     <Compile Include="AssemblyInfo.fs" />
   </ItemGroup>
   <PropertyGroup>
