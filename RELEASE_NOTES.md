@@ -20,5 +20,11 @@
 * Added to implementation of Command module/static class
 * Added strong name signing
 
+* Created new standalone command implementations
+* Added to implementation of Command module/static class
+* Added strong name signing
+* Added back expression based RaisePropertyChanged
+
+
 
 

@@ -126,6 +126,9 @@ open Microsoft.FSharp.Quotations.Patterns
 
 [<AutoOpen>]
 module EventExtensions =
+    type IRaisePropertyChanged with
+        member x.RaisePropertyChanged(expr : Expr) = 
+            x.RaisePropertyChanged(getPropertyNameFromExpression(expr))
 
     type IDependencyTracker with
         member x.AddPropertyDependency(prop : string, dependency : string) =
@@ -194,6 +197,10 @@ open System.Threading.Tasks
 
 [<Extension>]
 type Extensions =
+
+    [<Extension>]
+     static member RaisePropertyChanged(irpc : IRaisePropertyChanged, expr : System.Linq.Expressions.Expression) = 
+            irpc.RaisePropertyChanged(getPropertyNameFromLinqExpression(expr))
     
     [<Extension>]
     static member AddPropertyDependency(dependencyTracker : IDependencyTracker, property : string, dependency : string) =
