@@ -20,6 +20,7 @@
 * Added to implementation of Command module/static class
 * Added strong name signing
 
+#### 1.0.4.0 - January 5 2017
 * Created new standalone command implementations
 * Added to implementation of Command module/static class
 * Added strong name signing
