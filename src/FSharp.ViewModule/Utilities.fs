@@ -12,7 +12,8 @@ open System.Threading
 open System.Threading.Tasks
 
 [<assembly:System.Runtime.CompilerServices.Extension>]
-[<assembly:System.Runtime.CompilerServices.InternalsVisibleTo("FSharp.ViewModule.Tests")>]
+[<assembly:System.Runtime.CompilerServices.InternalsVisibleTo("FSharp.ViewModule.Tests, PublicKey=0024000004800000940000000602000000240000525341310004000001000100cf203ce06af4e2593a080a08fd93abc9ab1acc5726f6ccf3fa03c73924a7545c50e263899072edeb6cfbce1c8528bbc5b7bc681d5dcf72cfe1ad1644a61adeb5f1a47699271008ca463835c6d1986efd918f9cc45d17d5b3a50a80c43e17cb9407005401d43f0745f64495374be491807c6b4b8ae2505d517824970a250e90b8")>]
+[<assembly:AssemblyKeyFileAttribute("fsvm.snk")>]
 do ()
 
 [<AutoOpen>]
