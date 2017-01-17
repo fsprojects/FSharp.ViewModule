@@ -26,6 +26,12 @@
 * Added strong name signing
 * Added back expression based RaisePropertyChanged
 
+#### 1.0.5.0 - January 17 2017
+* Fixed bug in EventViewModel factory management (#27)
+
+
+
+
 
 
 

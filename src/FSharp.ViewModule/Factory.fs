@@ -137,6 +137,50 @@ type IViewModelPropertyFactory =
     // CommandAsyncParamChecked<'TParam> : createTask : Func<'TParam, CancellationToken, Task> * canExecute : Func<'TParam, bool> * token : CancellationToken * [<ParamArray>] dependentProperties : Expression<Func<obj>> array -> IAsyncNotifyCommand    
     // CommandAsyncParamChecked<'TParam> : createTask : Func<'TParam, CancellationToken, Task> * canExecute : Func<'TParam, bool> * token : CancellationToken * onCancel : Action<OperationCanceledException> * [<ParamArray>] dependentProperties : Expression<Func<obj>> array -> IAsyncNotifyCommand 
 
+/// This interface is a tag for implementation of extension methods. Do not implement externally. 
+type IEventViewModelPropertyFactory<'a> =
+    inherit IViewModelPropertyFactory
+    
+    // The only type which should implement this interface is EventViewModelBase. Therefore, the implementation can be cast to this type
+    // and used to access the following internal members:
+    //
+    // EventValueCommandI<'a> : value:'a -> ICommand
+    // EventValueCommandI<'a> : unit -> ICommand
+    // EventValueCommandI<'a,'b> : valueFactory:('b -> 'a) -> ICommand
+    //
+    // EventValueCommandCheckedI<'a> : value:'a * canExecute:(unit -> bool) * ?dependentProperties: string list -> INotifyCommand
+    // EventValueCommandCheckedI<'a> : canExecute:('a -> bool) * ?dependentProperties: string list -> INotifyCommand
+    // EventValueCommandCheckedI<'a,'b> : valueFactory:('b -> 'a) * canExecute:('b -> bool) * ?dependentProperties: string list -> INotifyCommand
+
+
+    // The F# API is implemented with members having the following signatures via extension methods in the ViewModule.FSharp namespace:
+    // (note that string property names are replaced by quotation expressions of type Expr)
+    //
+    // EventValueCommand<'a> : value:'a -> ICommand
+    // EventValueCommand<'a> : unit -> ICommand
+    // EventValueCommand<'a,'b> : valueFactory:('b -> 'a) -> ICommand
+    //
+    // EventValueCommandChecked<'a> : value:'a * canExecute:(unit -> bool) * ?dependentProperties: Expr list -> INotifyCommand
+    // EventValueCommandChecked<'a> : canExecute:('a -> bool) * ?dependentProperties: Expr list -> INotifyCommand
+    // EventValueCommandChecked<'a,'b> : valueFactory:('b -> 'a) * canExecute:('b -> bool) * ?dependentProperties: Expr list -> INotifyCommand
+
+    // The C# API is implemented with members having the following signatures via extension methods in the ViewModule.CSharp namespace:
+    //
+    // EventValueCommand<'TEvent> : value:'TEvent -> ICommand
+    // EventValueCommand<'TEvent> : unit -> ICommand
+    // EventValueCommand<'TEvent, 'TSource> : valueSelector: Func<'TSource, 'TEvent> -> ICommand
+    //
+    // EventValueCommandChecked<'TEvent> : value:'TEvent * canExecute: Func<bool> * [<ParamArray>] dependentProperties: string array -> INotifyCommand
+    // EventValueCommandChecked<'TEvent> : canExecute: Func<'TEvent, bool> * [<ParamArray>] dependentProperties: string array -> INotifyCommand
+    // EventValueCommandChecked<'TEvent,' TSource> : valueSelector: Func<'TSource, 'TEvent> * canExecute: Func<'TSource, bool> * [<ParamArray>] dependentProperties: string array -> INotifyCommand
+    //
+    // In addition, the following extension methods are implemented in the namespace ViewModule.CSharp.Expressions
+    // to support LINQ Expression trees for C# versions which do not have nameof:
+    //
+    // EventValueCommandChecked<'TEvent> : value:'TEvent * canExecute: Func<bool> * [<ParamArray>] dependentProperties: Expression<Func<obj>> array -> INotifyCommand
+    // EventValueCommandChecked<'TEvent> : canExecute: Func<'TEvent, bool> * [<ParamArray>] dependentProperties: Expression<Func<obj>> array -> INotifyCommand
+    // EventValueCommandChecked<'TEvent,' TSource> : valueSelector: Func<'TSource, 'TEvent> * canExecute: Func<'TSource, bool> * [<ParamArray>] dependentProperties: Expression<Func<obj>> array -> INotifyCommand
+
 type internal NotifyingValueBackingField<'a> (propertyName, raisePropertyChanged : string -> unit, storage : NotifyingValue<'a>, validationResultPublisher : IValidationTracker, validate : 'a -> string list) =    
     let value = storage
     
@@ -189,21 +233,23 @@ type internal ViewModelPropertyFactory(propChanged : string -> unit, addCommandD
                                        getExecuting : unit -> bool, setExecuting : bool -> unit, operationExecutingProp : string,
                                        validationTracker : IValidationTracker) =
 
+    member internal __.Delegators with get() = (propChanged, addCommandDependencies, getExecuting, setExecuting, operationExecutingProp, validationTracker)
+
     interface IViewModelPropertyFactory
     /// members associated with IViewModelPropertyFactory which is just an interface tag
 
-    member internal this.BackingI (prop : string, defaultValue : 'a, validate : ValidationResult<'a> -> ValidationResult<'a>) =
+    member internal __.BackingI (prop : string, defaultValue : 'a, validate : ValidationResult<'a> -> ValidationResult<'a>) =
         let validateFun = Validators.validate(prop) >> validate >> result
         NotifyingValueBackingField<'a>(prop, propChanged, defaultValue, validationTracker, validateFun) :> INotifyingValue<'a>
 
-    member internal this.BackingI (prop : string, defaultValue : 'a, ?validate : 'a -> string list) =
+    member internal __.BackingI (prop : string, defaultValue : 'a, ?validate : 'a -> string list) =
         let validateFun = defaultArg validate (fun _ -> [])
         NotifyingValueBackingField<'a>(prop, propChanged, defaultValue, validationTracker, validateFun) :> INotifyingValue<'a>
 
-    member internal this.FromFuncsI (prop : string, getter, setter) =
+    member internal __.FromFuncsI (prop : string, getter, setter) =
         NotifyingValueFuncs<'a>(prop, propChanged, getter, setter) :> INotifyingValue<'a>
 
-    member internal this.CommandAsyncI(asyncWorkflow, ?token, ?onCancel) =
+    member internal __.CommandAsyncI(asyncWorkflow, ?token, ?onCancel) =
         let ct = defaultArg token CancellationToken.None
         let oc = defaultArg onCancel ignore
         let cmd = Commands.createAsyncInternal asyncWorkflow getExecuting setExecuting (fun () -> true) ct oc
@@ -211,7 +257,7 @@ type internal ViewModelPropertyFactory(propChanged : string -> unit, addCommandD
         addCommandDependencies cmd opEx
         cmd
 
-    member internal this.CommandAsyncCheckedI(asyncWorkflow, canExecute, ?dependentProperties: string list, ?token, ?onCancel) =
+    member internal __.CommandAsyncCheckedI(asyncWorkflow, canExecute, ?dependentProperties: string list, ?token, ?onCancel) =
         let ct = defaultArg token CancellationToken.None
         let oc = defaultArg onCancel ignore
         let cmd = Commands.createAsyncInternal asyncWorkflow getExecuting setExecuting canExecute ct oc
@@ -220,7 +266,7 @@ type internal ViewModelPropertyFactory(propChanged : string -> unit, addCommandD
         addCommandDependencies cmd dependentProperties
         cmd
 
-    member internal this.CommandAsyncParamI(asyncWorkflow, ?token, ?onCancel) =
+    member internal __.CommandAsyncParamI(asyncWorkflow, ?token, ?onCancel) =
         let ct = defaultArg token CancellationToken.None
         let oc = defaultArg onCancel ignore
         let cmd = Commands.createAsyncParamInternal asyncWorkflow getExecuting setExecuting (fun _ -> true) ct oc
@@ -228,7 +274,7 @@ type internal ViewModelPropertyFactory(propChanged : string -> unit, addCommandD
         addCommandDependencies cmd opEx
         cmd
 
-    member internal this.CommandAsyncParamCheckedI(asyncWorkflow, canExecute, ?dependentProperties: string list, ?token, ?onCancel) =
+    member internal __.CommandAsyncParamCheckedI(asyncWorkflow, canExecute, ?dependentProperties: string list, ?token, ?onCancel) =
         let ct = defaultArg token CancellationToken.None
         let oc = defaultArg onCancel ignore
         let cmd = Commands.createAsyncParamInternal asyncWorkflow getExecuting setExecuting canExecute ct oc
@@ -237,21 +283,58 @@ type internal ViewModelPropertyFactory(propChanged : string -> unit, addCommandD
         addCommandDependencies cmd dependentProperties
         cmd
 
-    member internal this.CommandSyncI(execute) =
+    member internal __.CommandSyncI(execute) =
         let cmd = Commands.createSyncInternal execute (fun () -> true)
         cmd
 
-    member internal this.CommandSyncCheckedI(execute, canExecute, ?dependentProperties: string list) =
+    member internal __.CommandSyncCheckedI(execute, canExecute, ?dependentProperties: string list) =
         let cmd = Commands.createSyncInternal execute canExecute
         addCommandDependencies cmd dependentProperties
         cmd
 
-    member internal this.CommandSyncParamI(execute) =
+    member internal __.CommandSyncParamI(execute) =
         let cmd = Commands.createSyncParamInternal execute (fun _ -> true)
         cmd
 
-    member internal this.CommandSyncParamCheckedI(execute, canExecute, ?dependentProperties: string list) =
+    member internal __.CommandSyncParamCheckedI(execute, canExecute, ?dependentProperties: string list) =
         let cmd = Commands.createSyncParamInternal execute canExecute
         addCommandDependencies cmd dependentProperties
         cmd
 
+type internal EventViewModelPropertyFactory<'a>(triggerEvent: 'a -> unit, propChanged : string -> unit, 
+                                                addCommandDependencies : INotifyCommand -> string list option -> unit, 
+                                                getExecuting : unit -> bool, setExecuting : bool -> unit, operationExecutingProp : string,
+                                                validationTracker : IValidationTracker) =
+    inherit ViewModelPropertyFactory(propChanged, addCommandDependencies, getExecuting, setExecuting, operationExecutingProp, validationTracker)
+
+    interface IEventViewModelPropertyFactory<'a>
+
+    member internal __.EventValueCommandI<'a> value =
+        let execute = fun _ -> triggerEvent value
+        Commands.createSyncInternal execute (fun _ -> true) :> ICommand
+
+    member internal __.EventValueCommandI<'a,'b> (valueFactory : 'b -> 'a) =
+        let execute = valueFactory >> triggerEvent 
+        Commands.createSyncParamInternal execute (fun _ -> true) :> ICommand
+
+    member internal __.EventValueCommandI<'a>() =
+        let execute = fun (args:'a) -> triggerEvent args
+        Commands.createSyncParamInternal execute (fun _ -> true) :> ICommand
+
+    member internal __.EventValueCommandCheckedI<'a>(value, canExecute, dependentProperties) =
+        let execute = fun _ -> triggerEvent value
+        let cmd = Commands.createSyncInternal execute canExecute
+        addCommandDependencies cmd dependentProperties 
+        cmd
+
+    member internal __.EventValueCommandCheckedI<'a>(canExecute, dependentProperties) =
+        let execute = fun (args:'a) -> triggerEvent args
+        let cmd = Commands.createSyncParamInternal execute canExecute
+        addCommandDependencies cmd dependentProperties
+        cmd
+
+    member internal __.EventValueCommandCheckedI<'a,'b>(valueFactory, canExecute, dependentProperties) =
+        let execute = fun (args:'b) -> triggerEvent (valueFactory args)
+        let cmd = Commands.createSyncParamInternal execute canExecute
+        addCommandDependencies cmd dependentProperties
+        cmd

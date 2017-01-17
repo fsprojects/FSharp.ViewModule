@@ -84,7 +84,7 @@ type ViewModelUntyped() as self =
     /// Manages tracking of validation information for the entity
     member this.ValidationTracker = errorTracker :> IValidationTracker
 
-    member this.Factory = factory :> IViewModelPropertyFactory
+    member __.Factory = factory :> IViewModelPropertyFactory    
 
     member this.IsValid with get() = not errorTracker.HasErrors
 
