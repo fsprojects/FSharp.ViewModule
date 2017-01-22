@@ -19,3 +19,7 @@ namespace ViewModule
 [<AbstractClass>]
 type ViewModelBase() =
     inherit ViewModule.Internal.ViewModelUntyped()
+
+    let factory = ViewModelPropertyFactory(base.Delegators)
+
+    member __.Factory with get() = factory :> IViewModelPropertyFactory
