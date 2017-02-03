@@ -79,7 +79,7 @@ type IValidationTracker =
 
 /// This interface is a tag for implementation of extension methods. Do not implement externally.
 type IDependencyTracker =
-    interface end
+    abstract SynchronizationContext : System.Threading.SynchronizationContext with get, set    
     
     // DependencyTracker is the only implementation of IDependencyTracker and implements the following members:
     //

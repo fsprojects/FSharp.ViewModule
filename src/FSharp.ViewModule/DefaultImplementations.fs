@@ -215,7 +215,8 @@ type DependencyTracker(raisePropertyChanged : string -> unit, propertyChanged : 
     /// Optional context used to raise all property changed notifications.  If null, they'll get raised directly.
     member val SynchronizationContext : SynchronizationContext = null with get, set
 
-    interface IDependencyTracker
+    interface IDependencyTracker with
+        member this.SynchronizationContext with get() = this.SynchronizationContext and set(v) = this.SynchronizationContext <- v
 
     member internal this.AddPropertyDependenciesI (property : string, dependentProperties: string list) = addDependentProperties property dependentProperties
     member internal this.AddPropertyDependencyI (property : string, dependentProperty: string) = addDependentProperty property dependentProperty

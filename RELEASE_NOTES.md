@@ -29,6 +29,9 @@
 #### 1.0.5.0 - January 17 2017
 * Fixed bug in EventViewModel factory management (#27)
 
+#### 1.0.6.0 - February 3 2017
+* Exposed SynchronizationContext in IDependencyTracker
+* 
 
 
 
