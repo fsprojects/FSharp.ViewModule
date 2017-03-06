@@ -120,6 +120,7 @@ open ViewModule.Validation.FSharp
 
 open System
 open System.Threading
+open System.Windows.Input
 
 open Microsoft.FSharp.Quotations
 open Microsoft.FSharp.Quotations.Patterns
@@ -142,6 +143,12 @@ module EventExtensions =
 
         member x.AddPropertyDependencies(prop : Expr, dependencies : Expr list) =
             (x :?> DependencyTracker).AddPropertyDependenciesI(getPropertyNameFromExpression prop, dependencies |> List.map getPropertyNameFromExpression)
+
+        member x.AddCommandDependency(command : INotifyCommand, dependency : string) =
+            (x :?> DependencyTracker).AddCommandDependencyI(command, dependency)
+
+        member x.AddCommandDependencies(command : INotifyCommand, dependencies : string list) =
+            (x :?> DependencyTracker).AddCommandDependenciesI(command, dependencies)
 
     type IViewModelPropertyFactory with
         member x.Backing(prop : Expr, defaultValue : 'a, validate : ValidationResult<'a> -> ValidationResult<'a>) =
@@ -201,6 +208,14 @@ type Extensions =
     [<Extension>]
      static member RaisePropertyChanged(irpc : IRaisePropertyChanged, expr : System.Linq.Expressions.Expression) = 
             irpc.RaisePropertyChanged(getPropertyNameFromLinqExpression(expr))
+
+    [<Extension>]
+    static member AddCommandDependency(dependencyTracker : IDependencyTracker, command : INotifyCommand, dependency : string) =
+        (dependencyTracker :?> DependencyTracker).AddCommandDependencyI(command, dependency)
+
+    [<Extension>]
+    static member AddCommandDependencies(dependencyTracker : IDependencyTracker, command : INotifyCommand, dependency : string, [<ParamArray>] rest : string array) =
+        (dependencyTracker :?> DependencyTracker).AddCommandDependenciesI(command, dependency :: (List.ofArray rest))
     
     [<Extension>]
     static member AddPropertyDependency(dependencyTracker : IDependencyTracker, property : string, dependency : string) =

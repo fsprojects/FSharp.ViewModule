@@ -29,13 +29,18 @@ module internal Utilities =
             // Check direct cast - works for reference types
             Some res
         | _ ->             
-            try
-                // Handle nullable types, mismatched value types, or convertible reference types
-                match Convert.ChangeType(o, typeof<'T>) with
-                | :? 'T as res -> Some res
+            // Avoid exceptions in Convert call when possible
+            let rType = typeof<'T>
+            match o, rType.GetTypeInfo().IsValueType with
+            | null, true -> None
+            | _ ->
+                try
+                    // Handle nullable types, mismatched value types, or convertible reference types
+                    match Convert.ChangeType(o, typeof<'T>) with
+                    | :? 'T as res -> Some res
+                    | _ -> None
+                with
                 | _ -> None
-            with
-            | _ -> None
     
     let getPropertyNameFromExpression(expr : Expr) = 
         match expr with

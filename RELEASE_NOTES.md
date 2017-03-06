@@ -31,7 +31,10 @@
 
 #### 1.0.6.0 - February 3 2017
 * Exposed SynchronizationContext in IDependencyTracker
-* 
+
+#### 1.0.7.0 - March 6 2017
+* Added back in command dependency tracking
+
 
 
 

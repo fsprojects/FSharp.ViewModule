@@ -197,7 +197,7 @@ type DependencyTracker(raisePropertyChanged : string -> unit, propertyChanged : 
             commandTracking.[propertyName] <- command :: existing
         else
             commandTracking.Add(propertyName, [command])
-
+    
     let addDependentProperty propertyName dependency =
         if (propertyTracking.ContainsKey(dependency)) then
             let existing = propertyTracking.[dependency]
@@ -220,4 +220,6 @@ type DependencyTracker(raisePropertyChanged : string -> unit, propertyChanged : 
 
     member internal this.AddPropertyDependenciesI (property : string, dependentProperties: string list) = addDependentProperties property dependentProperties
     member internal this.AddPropertyDependencyI (property : string, dependentProperty: string) = addDependentProperty property dependentProperty
+    member internal this.AddCommandDependenciesI (command : INotifyCommand, dependentProperties: string list) = 
+        dependentProperties |> List.iter (fun p -> addDependentCommand p command)
     member internal this.AddCommandDependencyI (command : INotifyCommand, name) = addDependentCommand name command

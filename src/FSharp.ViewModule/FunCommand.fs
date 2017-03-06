@@ -95,13 +95,13 @@ module internal Commands =
         FunCommand(execute, getExecuting, setExecuting, (fun o -> canExecute()), token, onCancel) :> IAsyncNotifyCommand
 
     let createSyncParamInternal<'a> (execute : ('a -> unit)) (canExecute : ('a -> bool)) =
-        let ceWrapped o = 
+        let ceWrapped (o : obj) = 
             let a = downcastAndCreateOption(o)            
             match a with
             | None -> false
             | Some v -> canExecute(v)
 
-        let func o = 
+        let func (o : obj) = 
             let a = downcastAndCreateOption(o)
             match a with
             | None -> a |> ignore
