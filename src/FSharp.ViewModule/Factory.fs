@@ -233,8 +233,6 @@ type internal ViewModelPropertyFactory(propChanged : string -> unit, addCommandD
                                        getExecuting : unit -> bool, setExecuting : bool -> unit, operationExecutingProp : string,
                                        validationTracker : IValidationTracker) =
 
-    member internal __.Delegators with get() = (propChanged, addCommandDependencies, getExecuting, setExecuting, operationExecutingProp, validationTracker)
-
     interface IViewModelPropertyFactory
     /// members associated with IViewModelPropertyFactory which is just an interface tag
 

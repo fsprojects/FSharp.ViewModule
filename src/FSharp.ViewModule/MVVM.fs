@@ -58,8 +58,6 @@ type ViewModelUntyped() as self =
     let operationExecuting = NotifyingValueBackingField(getPropertyNameFromExpression(<@ self.OperationExecuting @>), propChanged, false, validationTracker, (fun _ -> List.empty)) :> INotifyingValue<bool>
     let operationExecutingProp = getPropertyNameFromExpression <@ self.OperationExecuting @>
 
-    let factory = ViewModelPropertyFactory(propChanged, addCommandDependencies, getExecuting, setExecuting, operationExecutingProp, validationTracker)
-
     // Overridable entity level validation
     abstract member Validate : string -> ValidationState seq
     default this.Validate(propertyName: string) =
@@ -84,7 +82,8 @@ type ViewModelUntyped() as self =
     /// Manages tracking of validation information for the entity
     member this.ValidationTracker = errorTracker :> IValidationTracker
 
-    member __.Factory = factory :> IViewModelPropertyFactory    
+    // Factory implemented in derived classes
+    member internal this.Delegators with get() = (propChanged, addCommandDependencies, getExecuting, setExecuting, operationExecutingProp, validationTracker)
 
     member this.IsValid with get() = not errorTracker.HasErrors
 

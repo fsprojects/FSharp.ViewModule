@@ -27,7 +27,7 @@ type EventViewModelBase<'a>() =
     
     let eventStream = Event<'a>()
 
-    let (propChanged, addCommandDependencies, getExecuting, setExecuting, operationExecutingProp, validationTracker) = (base.Factory :?> ViewModelPropertyFactory).Delegators
+    let (propChanged, addCommandDependencies, getExecuting, setExecuting, operationExecutingProp, validationTracker) = base.Delegators
 
     let factory = EventViewModelPropertyFactory<'a>(eventStream.Trigger, propChanged, addCommandDependencies, getExecuting, setExecuting, operationExecutingProp, validationTracker)
 
@@ -35,7 +35,7 @@ type EventViewModelBase<'a>() =
 
     member __.RaiseEvent = eventStream.Trigger
 
-    member this.Factory with get() = factory :> IEventViewModelPropertyFactory<'a>        
+    member __.Factory with get() = factory :> IEventViewModelPropertyFactory<'a>        
 
 namespace ViewModule.FSharp
 
