@@ -7,6 +7,20 @@
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+    <PackageId>FSharp.ViewModule.Core</PackageId>
+    <Title>FSharp.ViewModule</Title>
+    <Authors>Reed Copsey,Jr.</Authors>
+    <Company />
+    <Description>Library providing MVVM and INotifyPropertyChanged support for F# projects</Description>
+    <Copyright>Copyright 2022</Copyright>
+    <PackageProjectUrl>http://github.com/fsprojects/FSharp.ViewModule</PackageProjectUrl>
+    <AssemblyVersion>2.0.0.0</AssemblyVersion>
+    <PackageIcon>logo.png</PackageIcon>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <VersionPrefix>2.0.0</VersionPrefix>
+    <VersionSuffix />
+    <Version>$(VersionPrefix)$(VersionSuffix)</Version>
+    <PackageVersion>$(Version)</PackageVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugType>portable</DebugType>
@@ -34,7 +48,14 @@
     <Compile Include="EventViewModelBase.fs" />
     <Compile Include="Progress.fs" />
     <Compile Include="Command.fs" />
-    <Compile Include="AssemblyInfo.fs" />
+    <None Include="..\..\docs\files\img\logo.png">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+    <None Include="..\..\README.md">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
     <None Include="fsvm.snk" />
   </ItemGroup>
   <Import Project="..\..\.paket\Paket.Restore.targets" />
