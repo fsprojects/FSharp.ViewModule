@@ -1,23 +1,31 @@
+RESTRICTION: || (== net472) (== netstandard2.0)
 NUGET
   remote: https://www.nuget.org/api/v2
-    FAKE (4.38.3)
-    FSharp.Compiler.Service (2.0.0.6)
-    FSharp.Core (4.0.0.1) - redirects: force
-    FSharp.Formatting (2.14.4)
-      FSharp.Compiler.Service (2.0.0.6)
-      FSharpVSPowerTools.Core (>= 2.3 < 2.4)
-    FSharpVSPowerTools.Core (2.3)
-      FSharp.Compiler.Service (>= 2.0.0.3)
-    Microsoft.Bcl (1.1.10) - framework: net10, net11, net20, net30, net35, net40, net40-full
-      Microsoft.Bcl.Build (>= 1.0.14)
-    Microsoft.Bcl.Build (1.0.21) - import_targets: false, framework: net10, net11, net20, net30, net35, net40, net40-full
-    Microsoft.Net.Http (2.2.29) - framework: net10, net11, net20, net30, net35, net40, net40-full
-      Microsoft.Bcl (>= 1.1.10)
-      Microsoft.Bcl.Build (>= 1.0.14)
-    NUnit (2.6.4)
-    NUnit.Runners (2.6.4)
+    FAKE (5.16)
+    FSharp.Core (6.0.5) - redirects: force
+    FSharp.Formatting (16.1)
+    Microsoft.NETCore.Platforms (6.0.5) - restriction: || (&& (== net472) (< net35)) (&& (== net472) (>= netcoreapp2.0)) (&& (== net472) (< netstandard1.0) (>= win8)) (&& (== net472) (< netstandard1.3) (>= wpa81)) (&& (== net472) (< netstandard1.5) (>= uap10.0)) (&& (== net472) (>= uap10.1)) (&& (== net472) (>= wp8)) (== netstandard2.0)
+    NETStandard.Library (2.0.3) - restriction: || (&& (== net472) (< net35)) (== netstandard2.0)
+      Microsoft.NETCore.Platforms (>= 1.1)
+    NUnit (3.13.3)
+      NETStandard.Library (>= 2.0) - restriction: || (&& (== net472) (< net35)) (== netstandard2.0)
+    NUnit.Console (3.15.2)
+      NUnit.ConsoleRunner (>= 3.15.2)
+      NUnit.Extension.NUnitProjectLoader (>= 3.6)
+      NUnit.Extension.NUnitV2Driver (>= 3.8)
+      NUnit.Extension.NUnitV2ResultWriter (>= 3.6)
+      NUnit.Extension.TeamCityEventListener (>= 1.0.7)
+      NUnit.Extension.VSProjectLoader (>= 3.8)
+    NUnit.ConsoleRunner (3.15.2)
+    NUnit.Extension.NUnitProjectLoader (3.7.1)
+    NUnit.Extension.NUnitV2Driver (3.9)
+    NUnit.Extension.NUnitV2ResultWriter (3.7)
+    NUnit.Extension.TeamCityEventListener (1.0.7)
+    NUnit.Extension.VSProjectLoader (3.9)
+    NUnit.Runners (3.12)
+      NUnit.Console (>= 3.12)
+    NUnit3TestAdapter (4.2.1)
     Octokit (0.17)
-      Microsoft.Net.Http  - framework: net10, net11, net20, net30, net35, net40, net40-full
     SourceLink.Fake (1.1)
 GITHUB
   remote: fsharp/FAKE
