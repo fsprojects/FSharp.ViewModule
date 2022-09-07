@@ -5,20 +5,23 @@ owners
 authors 
     Reed Copsey, Jr.
 projectUrl
-    http://github.com/fsprojects/FSharp.ViewModule
+    https://github.com/fsprojects/FSharp.ViewModule
 iconUrl
     https://raw.githubusercontent.com/fsprojects/FSharp.ViewModule/master/docs/files/img/logo.png
+licenseExpression
+    Apache 2.0
 licenseUrl
-    http://github.com/fsprojects/FSharp.ViewModule/blob/master/LICENSE.txt
+    https://raw.githubusercontent.com/fsprojects/FSharp.ViewModule/master/LICENSE.txt
 requireLicenseAcceptance
     false
 copyright
-    Copyright 2017
+    Copyright 2022
 tags
     F# MVVM FSharp INotifyPropertyChanged WPF XamarinForms Perspex
 summary
     Library providing MVVM and INotifyPropertyChanged support for F# projects
 description
     Library providing MVVM and INotifyPropertyChanged support for F# projects
-
+dependencies
+  FSharp.Core >= LOCKEDVERSION-NetStandard
 

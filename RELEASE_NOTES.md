@@ -35,6 +35,9 @@
 #### 1.0.7.0 - March 6 2017
 * Added back in command dependency tracking
 
+#### 2.0.0.0 - Sept 7 2022
+* Moved to .NET Standard 2.0
+
 
 
 

@@ -13,10 +13,11 @@
     <Company />
     <Description>Library providing MVVM and INotifyPropertyChanged support for F# projects</Description>
     <Copyright>Copyright © 2022</Copyright>
-    <PackageProjectUrl>http://github.com/fsprojects/FSharp.ViewModule</PackageProjectUrl>
+    <PackageProjectUrl>https://github.com/fsprojects/FSharp.ViewModule</PackageProjectUrl>
     <AssemblyVersion>2.0.0.0</AssemblyVersion>
     <PackageIcon>logo.png</PackageIcon>
     <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
     <VersionPrefix>2.0.0</VersionPrefix>
     <VersionSuffix />
     <Version>$(VersionPrefix)$(VersionSuffix)</Version>
@@ -53,6 +54,10 @@
       <PackagePath>\</PackagePath>
     </None>
     <None Include="..\..\README.md">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+    <None Include="..\..\LICENSE.txt">
       <Pack>True</Pack>
       <PackagePath>\</PackagePath>
     </None>
